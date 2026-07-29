@@ -25,8 +25,8 @@ logger = logging.getLogger("solstice.api")
 
 router = APIRouter()
 
-APP_VERSION = "1.0.0"
-MILESTONE = "milestone-2-phase-g"
+APP_VERSION = "1.2.0"
+MILESTONE = "milestone-2-phase-h"
 
 
 @router.post("/v1/ask", response_model=AskResponse, tags=["ask"])

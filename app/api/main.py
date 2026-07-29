@@ -77,7 +77,7 @@ def create_app() -> FastAPI:
     """Build and return the FastAPI application."""
     app = FastAPI(
         title="Solstice Intelligence API",
-        version="1.0.0",
+        version="1.2.0",
         summary="Governed natural-language analytics over a certified warehouse.",
         lifespan=lifespan,
     )
