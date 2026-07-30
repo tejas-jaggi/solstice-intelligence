@@ -4,6 +4,7 @@ Thin HTTP handlers. They own transport concerns only: receive a validated
 request, invoke the injected assistant, map the result to the public contract,
 return it. No business, SQL, validation, or presentation logic lives here.
 """
+
 from __future__ import annotations
 
 import logging
@@ -70,7 +71,6 @@ def ready(request: Request, response: Response) -> ReadyResponse:
 
     # Cheap warehouse reachability check (no OpenAI, no tokens spent).
     try:
-        assistant._schema  # schema was introspected at startup
         warehouse_ok = getattr(request.app.state, "warehouse_ok", True)
     except Exception:  # pragma: no cover
         warehouse_ok = False

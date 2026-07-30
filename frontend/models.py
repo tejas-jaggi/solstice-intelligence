@@ -15,6 +15,7 @@ type level:
 Because they are different types, the UI cannot accidentally treat "the backend
 refused" the same as "I couldn't reach the backend."
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -35,8 +36,8 @@ class ResultStatus(str, Enum):
 class TransportErrorKind(str, Enum):
     """Category of a transport-level failure (never a pipeline outcome)."""
 
-    NETWORK = "network"        # could not connect / connection refused
-    TIMEOUT = "timeout"        # request exceeded the configured timeout
+    NETWORK = "network"  # could not connect / connection refused
+    TIMEOUT = "timeout"  # request exceeded the configured timeout
     BAD_RESPONSE = "bad_response"  # non-200 or unparseable contract body
 
 
@@ -93,7 +94,7 @@ class AnalyticsApiClient(Protocol):
     the same shape as the real client.
     """
 
-    def ask(self, question: str) -> "ApiResult | ApiError":
+    def ask(self, question: str) -> ApiResult | ApiError:
         """Send one question to the backend and return a typed outcome."""
         ...
 

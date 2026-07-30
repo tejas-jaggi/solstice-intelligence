@@ -11,6 +11,7 @@ The resulting WarehouseSchema is the single source used for:
 Because both uses share one introspected object, the model the LLM is told
 about and the allowlist the gate enforces are guaranteed identical.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -53,9 +54,7 @@ class WarehouseSchema:
         # Build a case-insensitive lookup. DuckDB identifiers are effectively
         # case-insensitive unless quoted; normalising to lower-case gives us a
         # predictable allowlist without surprising the caller.
-        object.__setattr__(
-            self, "_by_name", {t.name.lower(): t for t in self.tables}
-        )
+        object.__setattr__(self, "_by_name", {t.name.lower(): t for t in self.tables})
 
     # -- allowlist helpers used by the validation gate ------------------------
 

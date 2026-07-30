@@ -14,6 +14,7 @@ question to the backend; prior turns are never concatenated or resent. This give
 the feel of a conversation with zero extra token cost and no multi-turn
 complexity (conversation memory is deferred).
 """
+
 from __future__ import annotations
 
 import httpx
@@ -23,8 +24,8 @@ from frontend import components, config
 from frontend.api_client import RealApiClient
 from frontend.models import AnalyticsApiClient, ApiResult
 
-
 # -- lightweight, cached backend identity (fetched once per session) ---------
+
 
 def _fetch_version() -> tuple[str | None, str | None]:
     try:
@@ -38,8 +39,8 @@ def _fetch_version() -> tuple[str | None, str | None]:
 
 
 def _init_state() -> None:
-    st.session_state.setdefault("phase", "idle")        # Idle|Submitting|Waiting|Response
-    st.session_state.setdefault("transcript", [])       # render-only history
+    st.session_state.setdefault("phase", "idle")  # Idle|Submitting|Waiting|Response
+    st.session_state.setdefault("transcript", [])  # render-only history
     st.session_state.setdefault("pending_question", None)
 
 
@@ -53,8 +54,10 @@ def run(client: AnalyticsApiClient | None = None) -> None:
 
     # Header: title + versioned-software identity + readiness (all informational).
     st.title("🌞 Solstice Intelligence")
-    st.caption("Ask a question in plain English. Every answer is warehouse-computed, "
-               "validated, and shown with the exact SQL that ran.")
+    st.caption(
+        "Ask a question in plain English. Every answer is warehouse-computed, "
+        "validated, and shown with the exact SQL that ran."
+    )
     app_version, milestone = _fetch_version()
     components.render_version(app_version, milestone)
     components.render_readiness(api.ready())
@@ -76,7 +79,7 @@ def run(client: AnalyticsApiClient | None = None) -> None:
         with st.spinner("Thinking…"):
             outcome = api.ask(question.strip())  # exactly one question; no history sent
         st.session_state["transcript"].append((question.strip(), outcome))
-        st.session_state["phase"] = "idle"       # back to Idle for the next question
+        st.session_state["phase"] = "idle"  # back to Idle for the next question
 
     # Render transcript newest-first (render-only; nothing here is resent).
     for q, outcome in reversed(st.session_state["transcript"]):

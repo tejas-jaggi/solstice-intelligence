@@ -8,6 +8,7 @@ explaining behavior in an interview, while remaining fully deterministic.
 The gate is a pure function from (candidate SQL, schema) to a ValidationResult.
 It never executes, generates, or repairs SQL.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -79,7 +80,7 @@ class ValidationResult:
         return frozenset(e.category for e in self.errors)
 
     @property
-    def approved_query(self) -> "ApprovedQuery | None":
+    def approved_query(self) -> ApprovedQuery | None:
         """The approval artifact for the executor, or None if rejected."""
         if self.approved and self.safe_sql is not None:
             return ApprovedQuery(safe_sql=self.safe_sql)
@@ -94,11 +95,11 @@ class ValidationResult:
         return "\n".join(lines)
 
     @classmethod
-    def approve(cls, safe_sql: str) -> "ValidationResult":
+    def approve(cls, safe_sql: str) -> ValidationResult:
         return cls(approved=True, errors=(), safe_sql=safe_sql)
 
     @classmethod
-    def reject(cls, errors: tuple[ValidationError, ...]) -> "ValidationResult":
+    def reject(cls, errors: tuple[ValidationError, ...]) -> ValidationResult:
         # A rejection with no errors would be a logic bug; guard against it.
         if not errors:
             raise ValueError("reject() requires at least one error")

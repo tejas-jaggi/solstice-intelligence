@@ -6,6 +6,7 @@ is hermetic and does not depend on the production database file, while still
 validating the authored metadata against the *actual* column names. If a schema
 change or a metadata edit breaks alignment, this test fails immediately.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -13,10 +14,9 @@ from pathlib import Path
 import duckdb
 import pytest
 
+from app.metadata.warehouse_metadata import build_warehouse_metadata
 from app.warehouse.connection import open_readonly
 from app.warehouse.schema import introspect
-from app.metadata.warehouse_metadata import build_warehouse_metadata
-
 
 REAL_DDL = [
     "CREATE TABLE Dim_Campaign(campaign_key INTEGER, campaign_name VARCHAR, campaign_type VARCHAR, start_date DATE, end_date DATE, discount_depth VARCHAR, season VARCHAR, target_audience VARCHAR, is_active_flag BOOLEAN)",

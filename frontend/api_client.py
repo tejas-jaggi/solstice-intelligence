@@ -13,6 +13,7 @@ executor, which returns structured errors rather than raising.
 Nothing in this module (or anywhere in frontend/) imports backend modules. The
 only contact with the backend is over HTTP against the frozen /v1 contract.
 """
+
 from __future__ import annotations
 
 import httpx
@@ -52,9 +53,7 @@ class RealApiClient:
         except httpx.TimeoutException:
             return ApiError(TransportErrorKind.TIMEOUT, "The request timed out.")
         except httpx.HTTPError:
-            return ApiError(
-                TransportErrorKind.NETWORK, "Could not reach the analytics service."
-            )
+            return ApiError(TransportErrorKind.NETWORK, "Could not reach the analytics service.")
 
         if response.status_code != 200:
             return ApiError(

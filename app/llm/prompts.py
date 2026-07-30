@@ -8,12 +8,12 @@ build_grounding_context, preserving single-source-of-truth for schema and the
 The prompt is for output QUALITY, not security. It encourages safe, correct SQL;
 the validation gate GUARANTEES it. Nothing here is a trust boundary.
 """
+
 from __future__ import annotations
 
 from app.metadata.metadata import WarehouseMetadata
 from app.semantic.grounding import build_grounding_context
 from app.warehouse.schema import WarehouseSchema
-
 
 _ROLE_AND_RULES = """\
 You are an analytics assistant for a data warehouse. Your job is to translate \
@@ -32,9 +32,7 @@ of guessing or inventing data. Do not call run_query in that case.
 """
 
 
-def build_system_prompt(
-    schema: WarehouseSchema, metadata: WarehouseMetadata
-) -> str:
+def build_system_prompt(schema: WarehouseSchema, metadata: WarehouseMetadata) -> str:
     """Assemble the full system prompt from role/rules + Phase B grounding."""
     grounding = build_grounding_context(schema, metadata)
     return f"{_ROLE_AND_RULES}\n\n{grounding}"

@@ -6,11 +6,13 @@ with safe defaults for local development.
 
 Nothing in this module connects to anything or performs side effects on import.
 """
+
 from __future__ import annotations
 
 import os
 from dataclasses import dataclass
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Repository root = two levels up from this file (app/config.py -> app -> repo root).

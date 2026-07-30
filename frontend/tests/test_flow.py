@@ -3,19 +3,28 @@
 Zero network, zero OpenAI. Verifies the client contract and that the app sends
 exactly one question per ask (single-turn guarantee).
 """
+
 from __future__ import annotations
 
 from frontend.fake_client import FakeApiClient
 from frontend.models import (
-    AnswerTable, ApiError, ApiResult, ResultMetadata, ResultStatus, TransportErrorKind,
+    AnswerTable,
+    ApiError,
+    ApiResult,
+    ResultMetadata,
+    ResultStatus,
+    TransportErrorKind,
 )
 
 
 def _success():
     return ApiResult(
-        status=ResultStatus.SUCCESS, success=True, explanation="ok",
+        status=ResultStatus.SUCCESS,
+        success=True,
+        explanation="ok",
         answer=AnswerTable(columns=["c"], rows=[[1]]),
-        executed_sql="SELECT 1", metadata=ResultMetadata(request_id="r1"),
+        executed_sql="SELECT 1",
+        metadata=ResultMetadata(request_id="r1"),
     )
 
 
@@ -23,7 +32,7 @@ def test_fake_client_records_single_question():
     fake = FakeApiClient(outcome=_success())
     out = fake.ask("how many orders?")
     assert isinstance(out, ApiResult)
-    assert fake.calls == ["how many orders?"]      # exactly one question, verbatim
+    assert fake.calls == ["how many orders?"]  # exactly one question, verbatim
 
 
 def test_fake_client_returns_scripted_error():

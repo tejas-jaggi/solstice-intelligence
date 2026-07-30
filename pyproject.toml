@@ -1,0 +1,67 @@
+[project]
+name = "solstice-intelligence"
+version = "1.2.1"
+description = "Governed natural-language analytics over a certified dimensional warehouse."
+requires-python = ">=3.14"
+readme = "README.md"
+license = { text = "MIT" }
+
+# ---------------------------------------------------------------------------
+# Ruff — linter + formatter (BLOCKING gate in CI).
+# Findings here are mechanical and auto-fixable, so blocking has no downside.
+# ---------------------------------------------------------------------------
+# target-version pinned to py312 (not py314): the codebase uses no 3.14-only
+# syntax, and ruff 0.16.0's py314 formatter incorrectly strips the required
+# parentheses from multi-type `except (A, B):` clauses, producing invalid syntax.
+# py312 assumes correct modern syntax without triggering that bug.
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["__pycache__", "data", "docs"]
+
+[tool.ruff.lint]
+# A pragmatic, non-noisy rule set: pyflakes (F), pycodestyle (E/W),
+# isort (I), pyupgrade (UP), flake8-bugbear (B), comprehensions (C4).
+select = ["E", "W", "F", "I", "UP", "B", "C4"]
+ignore = [
+    "E501",    # line length is handled by the formatter, not the linter
+    "UP042",   # `class X(str, Enum)` is intentional and lives in frozen M1/M2 code;
+               # migrating to StrEnum would modify frozen runtime files for style alone
+    "B008",    # `Depends()` in argument defaults is the correct, idiomatic FastAPI pattern
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests may use assert-heavy patterns and re-imports freely.
+"tests/**" = ["B011"]
+"frontend/tests/**" = ["B011"]
+
+# ---------------------------------------------------------------------------
+# mypy — type checking (ADVISORY in CI initially).
+# Promotion criterion: mypy becomes a BLOCKING gate once the repository reaches
+# a clean baseline (zero findings) and maintaining zero findings is practical.
+# Strictness is deliberately pragmatic at first, not --strict, to avoid a large
+# up-front cleanup or suppression spam.
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.14"
+warn_unused_ignores = true
+warn_redundant_casts = true
+ignore_missing_imports = true      # third-party libs without stubs won't block signal
+exclude = ["data/", "docs/", "build/"]
+
+# ---------------------------------------------------------------------------
+# pytest + coverage.
+# Coverage is INFORMATIONAL ONLY — measured and reported, never a gate.
+# (No --cov-fail-under: a coverage threshold would incentivize low-value tests.)
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests", "frontend/tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["app", "frontend"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

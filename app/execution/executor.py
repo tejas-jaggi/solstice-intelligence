@@ -12,6 +12,7 @@ Layered safeguards (defense in depth), each catching a distinct failure mode:
     4. Row-cap backstop — independent fetch cap; never assumes the gate injected
                         LIMIT correctly.
 """
+
 from __future__ import annotations
 
 import time
@@ -21,7 +22,7 @@ import duckdb
 from app.config import Settings, load_settings
 from app.execution.result import ExecutionResult, ExecutionStatus
 from app.validation.decision import ApprovedQuery
-from app.warehouse.connection import open_readonly, WarehouseUnavailableError
+from app.warehouse.connection import WarehouseUnavailableError, open_readonly
 
 
 def execute(

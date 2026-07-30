@@ -9,10 +9,13 @@ run_query tool definition, return what the model proposed — either a candidate
 SQL string (the model called run_query) or a natural-language message (the model
 declined / answered in prose). The client does not validate, execute, or format.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, cast
+
+from openai.types.responses import FunctionToolParam
 
 
 class LLMError(RuntimeError):
@@ -112,7 +115,10 @@ class OpenAIClient:
                 model=self.model_name,
                 instructions=system_prompt,
                 input=question,
-                tools=[self._tool_schema],
+                # tools.py keeps the schema as a plain, SDK-agnostic dict by
+                # design; this module is the sole SDK boundary, so the conformance
+                # cast to the SDK's tool-param type belongs here, not in tools.py.
+                tools=[cast(FunctionToolParam, self._tool_schema)],
             )
         except Exception as exc:  # pragma: no cover - network/provider dependent
             raise LLMError(f"OpenAI request failed: {exc}") from exc

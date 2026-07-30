@@ -1,0 +1,60 @@
+name: CI
+
+# Runs on every push and pull request. No secrets are used and no OpenAI credit
+# is spent: the entire test suite is deterministic (FakeLLMClient + mocks).
+#
+# Gate policy (ADR-011):
+#   BLOCKING      — ruff (lint + format), pytest, mypy
+#   INFORMATIONAL — coverage, pip-audit (never gate; coverage thresholds incentivize
+#                   low-value tests, and a changing CVE database would make builds
+#                   non-deterministic)
+#
+# Performance philosophy: CI must stay fast enough that developers run it willingly.
+# Fast checks run first; dependencies are cached; the job stays single and lean.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ---- BLOCKING GATES (deterministic, actionable) --------------------
+      - name: Ruff lint (blocking)
+        run: ruff check .
+
+      - name: Ruff format check (blocking)
+        run: ruff format --check .
+
+      - name: Tests with coverage (blocking)
+        run: pytest --cov --cov-report=term-missing
+
+      - name: mypy (blocking)
+        run: mypy app frontend
+
+      # ----------------
+      - name: pip-audit dependency scan (advisory)
+        continue-on-error: true
+        run: pip-audit --requirement requirements.txt

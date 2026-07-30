@@ -5,6 +5,7 @@ success, empty results, SQL errors, the independent row-cap backstop (simulating
 a gate LIMIT bug), non-approval refusal, and the read-only physical backstop
 against a forged approval.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -69,8 +70,8 @@ def test_row_cap_backstop_triggers_when_gate_limit_missing(warehouse):
     cfg = cfg_for(warehouse, max_rows=5)
     r = execute(ApprovedQuery("SELECT order_key FROM Fact_Orders"), cfg)
     assert r.ok
-    assert r.rows_returned == 5      # capped
-    assert r.truncated is True       # honestly reported
+    assert r.rows_returned == 5  # capped
+    assert r.truncated is True  # honestly reported
 
 
 def test_row_cap_not_triggered_when_under_cap(warehouse):
@@ -102,9 +103,12 @@ def test_forged_write_approval_blocked_by_readonly(warehouse):
     assert r.status is ExecutionStatus.EXECUTION_ERROR
     # confirm no table was created
     con = duckdb.connect(str(warehouse), read_only=True)
-    tables = [t[0] for t in con.execute(
-        "SELECT table_name FROM information_schema.tables WHERE table_schema='main'"
-    ).fetchall()]
+    tables = [
+        t[0]
+        for t in con.execute(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema='main'"
+        ).fetchall()
+    ]
     con.close()
     assert "evil" not in [t.lower() for t in tables]
 

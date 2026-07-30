@@ -24,14 +24,14 @@ Usage:
     # or
     python scripts/inspect_schema.py
 """
+
 from __future__ import annotations
 
 import sys
 
 from app.config import load_settings
-from app.warehouse.connection import open_readonly, WarehouseUnavailableError
+from app.warehouse.connection import WarehouseUnavailableError, open_readonly
 from app.warehouse.schema import introspect
-
 
 # Exit codes are named so intent is explicit at the call sites below.
 EXIT_OK = 0

@@ -5,6 +5,7 @@ dialect change touches one file. Parses with the DuckDB dialect specifically,
 because the warehouse is DuckDB and parsing as generic ANSI could mis-handle
 DuckDB-specific syntax (wrongly rejecting valid queries or mis-parsing others).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -47,5 +48,8 @@ def parse_sql(sql: str) -> ParseOutcome:
     except Exception as exc:  # sqlglot raises ParseError and subclasses
         return ParseOutcome(statements=(), error=str(exc))
 
-    statements = tuple(s for s in raw if s is not None)
+    # sqlglot.parse() is typed as returning list[Expr | None]; at runtime every
+    # non-None element is an exp.Expression. isinstance narrows the type for mypy
+    # and is a harmless, correct runtime filter.
+    statements: tuple[exp.Expression, ...] = tuple(s for s in raw if isinstance(s, exp.Expression))
     return ParseOutcome(statements=statements, error=None)

@@ -18,7 +18,10 @@ were found, since we only bound queries we are going to approve.
 
 The gate is pure: it never executes, generates, or repairs SQL.
 """
+
 from __future__ import annotations
+
+from sqlglot import expressions as exp
 
 from app.config import Settings, load_settings
 from app.validation import rules
@@ -56,6 +59,7 @@ def validate(
     outcome = parse_sql(sql)
     if not outcome.ok:
         from app.validation.decision import ErrorCategory, ValidationError
+
         return ValidationResult.reject(
             (ValidationError(ErrorCategory.PARSE_ERROR, f"Could not parse SQL: {outcome.error}"),)
         )
@@ -78,6 +82,20 @@ def validate(
     if errors:
         return ValidationResult.reject(errors)
 
-    # 8. bounds — only applied to a query we will approve
+    # 8. bounds — only applied to a query we will approve.
+    # The read-only rule (validate_statement_type) has already guaranteed the
+    # statement is a Query subtype (SELECT/UNION/…); this isinstance makes that
+    # guarantee explicit and type-checked before we call the Query-only .limit().
+    if not isinstance(statement, exp.Query):  # pragma: no cover - guaranteed by rules above
+        from app.validation.decision import ErrorCategory, ValidationError
+
+        return ValidationResult.reject(
+            (
+                ValidationError(
+                    ErrorCategory.NON_SELECT_STATEMENT,
+                    "Not a read-only query.",
+                ),
+            )
+        )
     safe_sql = apply_limit(statement, cfg.max_rows, cfg.default_limit)
     return ValidationResult.approve(safe_sql)

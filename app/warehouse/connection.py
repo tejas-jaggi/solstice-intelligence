@@ -8,6 +8,7 @@ validation gate upstream cannot mutate warehouse contents.
 Defense in depth: read-only here is not a substitute for the validation gate,
 it is a backstop beneath it.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

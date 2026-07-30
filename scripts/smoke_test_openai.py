@@ -16,6 +16,7 @@ Exit codes:
     1  pipeline ran but did not complete (inspect the printed stage/reason)
     2  setup/config error (no key, warehouse missing, SDK issue)
 """
+
 from __future__ import annotations
 
 import sys
@@ -23,7 +24,9 @@ import sys
 # Load .env if python-dotenv is available (matches app config behavior).
 try:
     from dotenv import load_dotenv
+
     from app.config import REPO_ROOT
+
     load_dotenv(REPO_ROOT / ".env")
 except Exception:
     pass
@@ -31,13 +34,13 @@ except Exception:
 import os
 
 from app.config import load_settings
-from app.warehouse.connection import open_readonly, WarehouseUnavailableError
-from app.warehouse.schema import introspect
-from app.metadata.warehouse_metadata import build_warehouse_metadata
-from app.llm.client import OpenAIClient, LLMError
-from app.llm.tools import RUN_QUERY_TOOL
-from app.llm.orchestrator import AnalyticsAssistant
 from app.formatting.formatter import format_response
+from app.llm.client import LLMError, OpenAIClient
+from app.llm.orchestrator import AnalyticsAssistant
+from app.llm.tools import RUN_QUERY_TOOL
+from app.metadata.warehouse_metadata import build_warehouse_metadata
+from app.warehouse.connection import WarehouseUnavailableError, open_readonly
+from app.warehouse.schema import introspect
 
 RULE = "-" * 72
 
@@ -117,6 +120,7 @@ def main() -> int:
     print(RULE)
 
     from app.llm.result import PipelineStage
+
     if result.stage is PipelineStage.COMPLETED:
         print("RESULT: ✅ full pipeline completed end-to-end.")
         return 0

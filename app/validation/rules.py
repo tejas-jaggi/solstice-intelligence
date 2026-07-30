@@ -12,6 +12,7 @@ Security model:
   * The FUNCTION DENYLIST is defense-in-depth: it gives an earlier, clearer
     refusal for known-dangerous DuckDB functions, but the allowlist is the wall.
 """
+
 from __future__ import annotations
 
 from sqlglot import expressions as exp
@@ -19,20 +20,36 @@ from sqlglot import expressions as exp
 from app.validation.decision import ErrorCategory, ValidationError
 from app.warehouse.schema import WarehouseSchema
 
-
 # Defense-in-depth denylist of DuckDB functions/operations that read or write
 # outside the database, or change engine state. NOT the primary protection.
-DENYLISTED_FUNCTIONS: frozenset[str] = frozenset({
-    "read_csv", "read_csv_auto", "read_parquet", "read_json", "read_json_auto",
-    "read_ndjson", "read_ndjson_auto", "read_text", "read_blob",
-    "glob", "copy",
-})
+DENYLISTED_FUNCTIONS: frozenset[str] = frozenset(
+    {
+        "read_csv",
+        "read_csv_auto",
+        "read_parquet",
+        "read_json",
+        "read_json_auto",
+        "read_ndjson",
+        "read_ndjson_auto",
+        "read_text",
+        "read_blob",
+        "glob",
+        "copy",
+    }
+)
 
 # Statement node types that are unambiguously not read-only. Presence of any of
 # these anywhere in the tree is a read-only violation.
 _WRITE_NODES = (
-    exp.Insert, exp.Update, exp.Delete, exp.Drop, exp.Create, exp.Alter,
-    exp.Merge, exp.Copy, exp.Command,  # Command covers PRAGMA/SET/ATTACH/etc.
+    exp.Insert,
+    exp.Update,
+    exp.Delete,
+    exp.Drop,
+    exp.Create,
+    exp.Alter,
+    exp.Merge,
+    exp.Copy,
+    exp.Command,  # Command covers PRAGMA/SET/ATTACH/etc.
 )
 
 
@@ -44,7 +61,7 @@ def validate_non_empty(sql: str) -> tuple[ValidationError, ...]:
 
 
 def validate_single_statement(
-    statements: tuple[exp.Expression, ...]
+    statements: tuple[exp.Expression, ...],
 ) -> tuple[ValidationError, ...]:
     """Reject anything other than exactly one statement (stops smuggling)."""
     if len(statements) != 1:
@@ -76,8 +93,7 @@ def validate_statement_type(
         errors.append(
             ValidationError(
                 ErrorCategory.NON_SELECT_STATEMENT,
-                f"Only read-only SELECT queries are permitted; got "
-                f"{type(root).__name__}.",
+                f"Only read-only SELECT queries are permitted; got {type(root).__name__}.",
             )
         )
 

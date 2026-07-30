@@ -3,6 +3,7 @@
 Uses FakeLLMClient (no network) but the REAL gate and executor, so the full
 pipeline is exercised. Warehouse fixture has data so execution returns rows.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -11,13 +12,13 @@ import duckdb
 import pytest
 
 from app.config import Settings
-from app.warehouse.connection import open_readonly
-from app.warehouse.schema import introspect
-from app.metadata.warehouse_metadata import build_warehouse_metadata
 from app.llm.client import FakeLLMClient
 from app.llm.orchestrator import AnalyticsAssistant
-from app.llm.result import PipelineStage
 from app.llm.prompts import build_system_prompt
+from app.llm.result import PipelineStage
+from app.metadata.warehouse_metadata import build_warehouse_metadata
+from app.warehouse.connection import open_readonly
+from app.warehouse.schema import introspect
 from tests.test_warehouse_metadata_real import REAL_DDL
 
 
@@ -50,6 +51,7 @@ def assistant(env, **client_kwargs):
 
 # ---------------------------------------------------------- prompt -----------
 
+
 def test_system_prompt_contains_schema_and_guidance(env):
     schema, metadata, _ = env
     prompt = build_system_prompt(schema, metadata)
@@ -61,6 +63,7 @@ def test_system_prompt_contains_schema_and_guidance(env):
 
 
 # ---------------------------------------------------------- happy path -------
+
 
 def test_completed_pipeline(env):
     a = assistant(env, sql="SELECT customer_key, net_revenue FROM Fact_Orders")
@@ -75,6 +78,7 @@ def test_completed_pipeline(env):
 
 # ---------------------------------------------------- no query proposed ------
 
+
 def test_no_tool_call_is_handled(env):
     a = assistant(env, sql=None, message="I can't answer that from this warehouse.")
     r = a.ask("what's the weather?")
@@ -84,6 +88,7 @@ def test_no_tool_call_is_handled(env):
 
 
 # --------------------------------------------------- validation rejected -----
+
 
 def test_unsafe_sql_rejected_by_gate(env):
     a = assistant(env, sql="DROP TABLE Fact_Orders")
@@ -101,6 +106,7 @@ def test_hallucinated_table_rejected(env):
 
 # --------------------------------------------------- execution failed --------
 
+
 def test_execution_failure_surfaced(env):
     # Passes the gate structurally (real table) but errors at runtime (bad column
     # that is unqualified, so the conservative column check does not catch it).
@@ -116,6 +122,7 @@ def test_execution_failure_surfaced(env):
 
 # --------------------------------------------------- API error ---------------
 
+
 def test_api_error_is_typed(env):
     a = assistant(env, raise_error=True)
     r = a.ask("anything")
@@ -125,6 +132,7 @@ def test_api_error_is_typed(env):
 
 
 # --------------------------------------------------- malformed args ----------
+
 
 def test_empty_sql_treated_as_no_query(env):
     a = assistant(env, sql="")

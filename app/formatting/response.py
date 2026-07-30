@@ -8,6 +8,7 @@ both consumers share one contract without re-parsing.
 This module defines the contract only. The pure transformation that builds it
 from an OrchestrationResult lives in formatter.py.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -28,9 +29,9 @@ class ResponseSeverity(str, Enum):
     """Lightweight severity so UIs present outcomes consistently without
     embedding presentation logic of their own."""
 
-    INFO = "info"        # a normal answer, or a benign "no query" outcome
+    INFO = "info"  # a normal answer, or a benign "no query" outcome
     WARNING = "warning"  # the user should adjust (e.g. rejected query)
-    ERROR = "error"      # something failed (execution or API)
+    ERROR = "error"  # something failed (execution or API)
 
 
 @dataclass(frozen=True)

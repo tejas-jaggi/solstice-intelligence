@@ -5,6 +5,7 @@ typed stage/status enum (not strings) plus observability metadata. The stage
 field is the key debugging artifact — it tells you exactly how far the pipeline
 got before it stopped.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -17,11 +18,11 @@ from app.validation.decision import ValidationResult
 class PipelineStage(str, Enum):
     """How far the pipeline progressed / where it concluded."""
 
-    NO_QUERY_PROPOSED = "no_query_proposed"      # model declined / answered in prose
+    NO_QUERY_PROPOSED = "no_query_proposed"  # model declined / answered in prose
     VALIDATION_REJECTED = "validation_rejected"  # gate rejected candidate SQL
-    EXECUTION_FAILED = "execution_failed"        # gate approved, executor failed
-    COMPLETED = "completed"                       # full success
-    API_ERROR = "api_error"                       # provider call failed
+    EXECUTION_FAILED = "execution_failed"  # gate approved, executor failed
+    COMPLETED = "completed"  # full success
+    API_ERROR = "api_error"  # provider call failed
 
 
 @dataclass(frozen=True)

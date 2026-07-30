@@ -5,6 +5,7 @@ injected via normal dependency passing — not a monkeypatch. Scripted to return
 fixed ApiResult or ApiError, so UI logic can be tested without any server,
 network, or OpenAI call.
 """
+
 from __future__ import annotations
 
 from frontend.models import ApiError, ApiResult

@@ -6,6 +6,7 @@ A pure function: same input always yields the same output, no I/O, no LLM, no
 database. It depends only on the typed result modules — the narrowest dependency
 set of any component. It never validates, executes, generates, or interprets.
 """
+
 from __future__ import annotations
 
 from app.formatting import templates as T

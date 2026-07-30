@@ -17,6 +17,7 @@ Two refinements over the initial design:
      UNRESOLVED sentinel rather than placeholder prose, so unresolved state is
      first-class and cannot ship unnoticed.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -50,8 +51,8 @@ class Relationship:
     """A join relationship from a fact to a dimension."""
 
     dimension_table: str
-    fact_key: "str | Unresolved"
-    dimension_key: "str | Unresolved"
+    fact_key: str | Unresolved
+    dimension_key: str | Unresolved
 
 
 @dataclass(frozen=True)
@@ -66,8 +67,8 @@ class FactMetadata:
     table: str
     grain: str
     business_event: str
-    primary_time_key: "str | Unresolved"
-    measures: tuple["str | Unresolved", ...]
+    primary_time_key: str | Unresolved
+    measures: tuple[str | Unresolved, ...]
     relationships: tuple[Relationship, ...]
 
 
@@ -77,12 +78,13 @@ class DimensionMetadata:
 
     table: str
     describes: str
-    key_column: "str | Unresolved"
+    key_column: str | Unresolved
 
 
 # --------------------------------------------------------------------------- #
 # Validation report
 # --------------------------------------------------------------------------- #
+
 
 class Severity(str, Enum):
     OK = "ok"
@@ -180,8 +182,9 @@ class WarehouseMetadata:
         """
         reports: list[ObjectReport] = []
 
-        def check_col(table: str, col: "str | Unresolved",
-                      missing: list[str], unresolved: list[str], label: str) -> None:
+        def check_col(
+            table: str, col: str | Unresolved, missing: list[str], unresolved: list[str], label: str
+        ) -> None:
             if isinstance(col, Unresolved):
                 unresolved.append(label)
             elif not schema.has_column(table, col):
@@ -200,15 +203,29 @@ class WarehouseMetadata:
                     if not schema.has_table(r.dimension_table):
                         joins.append(f"dimension '{r.dimension_table}' missing")
                         continue
-                    check_col(f.table, r.fact_key, missing, unresolved,
-                              f"join->{r.dimension_table}.fact_key")
-                    check_col(r.dimension_table, r.dimension_key, missing, unresolved,
-                              f"join->{r.dimension_table}.dimension_key")
-            reports.append(ObjectReport(
-                table=f.table, exists=exists,
-                missing_columns=tuple(missing), unresolved_fields=tuple(unresolved),
-                join_issues=tuple(joins),
-            ))
+                    check_col(
+                        f.table,
+                        r.fact_key,
+                        missing,
+                        unresolved,
+                        f"join->{r.dimension_table}.fact_key",
+                    )
+                    check_col(
+                        r.dimension_table,
+                        r.dimension_key,
+                        missing,
+                        unresolved,
+                        f"join->{r.dimension_table}.dimension_key",
+                    )
+            reports.append(
+                ObjectReport(
+                    table=f.table,
+                    exists=exists,
+                    missing_columns=tuple(missing),
+                    unresolved_fields=tuple(unresolved),
+                    join_issues=tuple(joins),
+                )
+            )
 
         for d in self.dimensions:
             missing = []
@@ -216,11 +233,15 @@ class WarehouseMetadata:
             exists = schema.has_table(d.table)
             if exists:
                 check_col(d.table, d.key_column, missing, unresolved, "key_column")
-            reports.append(ObjectReport(
-                table=d.table, exists=exists,
-                missing_columns=tuple(missing), unresolved_fields=tuple(unresolved),
-                join_issues=(),
-            ))
+            reports.append(
+                ObjectReport(
+                    table=d.table,
+                    exists=exists,
+                    missing_columns=tuple(missing),
+                    unresolved_fields=tuple(unresolved),
+                    join_issues=(),
+                )
+            )
 
         return ValidationReport(objects=tuple(reports))
 
@@ -243,7 +264,8 @@ class WarehouseMetadata:
         prompt never contains sentinel tokens. (Callers should gate on a
         shippable report before using this in production.)
         """
-        def col(x: "str | Unresolved") -> str | None:
+
+        def col(x: str | Unresolved) -> str | None:
             return None if isinstance(x, Unresolved) else x
 
         lines: list[str] = []
@@ -262,8 +284,7 @@ class WarehouseMetadata:
                     fk, dk = col(r.fact_key), col(r.dimension_key)
                     if fk and dk:
                         joins.append(
-                            f"{r.dimension_table} (on {f.table}.{fk}"
-                            f" = {r.dimension_table}.{dk})"
+                            f"{r.dimension_table} (on {f.table}.{fk} = {r.dimension_table}.{dk})"
                         )
                     else:
                         joins.append(r.dimension_table)

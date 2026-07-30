@@ -8,6 +8,7 @@ Explanations are deterministic templates — never LLM-generated. The warehouse
 (and the executed SQL shown alongside) is the source of truth; the explanation
 describes what the SYSTEM did, never an interpretation of what the data MEANS.
 """
+
 from __future__ import annotations
 
 # Headlines: short status labels for each outcome.
@@ -27,9 +28,7 @@ def explain_completed(rows_returned: int, truncated: bool) -> str:
         f"{rows_returned} row(s) returned."
     )
     if truncated:
-        base += (
-            " Results were limited to the configured maximum; more rows exist."
-        )
+        base += " Results were limited to the configured maximum; more rows exist."
     return base
 
 
@@ -58,6 +57,5 @@ def explain_execution_failed(error_message: str | None) -> str:
 # API errors: deliberately generic to the user; provider internals stay in logs
 # (metadata), never surfaced in user-facing fields.
 EXPLAIN_API_ERROR = (
-    "The assistant could not reach the language model service. "
-    "Please try again shortly."
+    "The assistant could not reach the language model service. Please try again shortly."
 )

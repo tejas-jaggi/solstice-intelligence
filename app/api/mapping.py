@@ -11,6 +11,7 @@ logic, or any interpretation of results. Every value it emits already exists,
 decided, on the internal result — mapping only changes its SHAPE, never its
 MEANING. This keeps the layer permanently small (see ADR-009).
 """
+
 from __future__ import annotations
 
 from app.api.models import AnswerTable, AskResponse, ResponseMetadata
@@ -43,9 +44,7 @@ def to_ask_response(result: OrchestrationResult, request_id: str) -> AskResponse
         execution_time_ms=execution.execution_time_ms if execution else None,
         row_count=execution.rows_returned if execution else None,
         truncated=execution.truncated if execution else None,
-        validation_passed=(
-            result.validation.approved if result.validation is not None else None
-        ),
+        validation_passed=(result.validation.approved if result.validation is not None else None),
     )
 
     return AskResponse(

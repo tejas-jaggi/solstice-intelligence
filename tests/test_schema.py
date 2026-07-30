@@ -5,6 +5,7 @@ against it. They deliberately do NOT touch the real certified warehouse: the
 assistant is a read-only consumer, and tests must never depend on or mutate
 production data.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,8 +13,8 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from app.warehouse.connection import open_readonly, WarehouseUnavailableError
 from app.warehouse import schema as S
+from app.warehouse.connection import WarehouseUnavailableError, open_readonly
 
 
 @pytest.fixture()
@@ -22,8 +23,7 @@ def fixture_db(tmp_path: Path) -> Path:
     db_path = tmp_path / "fixture.duckdb"
     con = duckdb.connect(str(db_path))
     con.execute(
-        "CREATE TABLE Dim_Customer "
-        "(customer_key INTEGER, customer_name VARCHAR, segment VARCHAR)"
+        "CREATE TABLE Dim_Customer (customer_key INTEGER, customer_name VARCHAR, segment VARCHAR)"
     )
     con.execute(
         "CREATE TABLE Fact_Orders "

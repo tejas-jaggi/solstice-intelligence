@@ -9,9 +9,11 @@ Base URL comes from the environment so one codebase runs unchanged in
 development (local API) and production (deployed API) — the twelve-factor
 "config in the environment" principle.
 """
+
 from __future__ import annotations
 
 import os
+from typing import Literal
 
 # Where the FastAPI backend lives. Overridable per environment.
 API_BASE_URL: str = os.environ.get("SOLSTICE_API_URL", "http://localhost:8000").rstrip("/")
@@ -22,4 +24,4 @@ REQUEST_TIMEOUT_SECONDS: float = float(os.environ.get("SOLSTICE_API_TIMEOUT", "3
 # Streamlit page presentation.
 PAGE_TITLE: str = "Solstice Intelligence"
 PAGE_ICON: str = "🌞"
-PAGE_LAYOUT: str = "centered"
+PAGE_LAYOUT: Literal["centered", "wide"] = "centered"

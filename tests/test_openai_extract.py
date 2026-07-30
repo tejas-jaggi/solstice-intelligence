@@ -7,6 +7,7 @@ carry .content blocks with .text). This closes the coverage gap on the one
 component that otherwise requires live verification, without making any network
 call.
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace

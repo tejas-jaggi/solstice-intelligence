@@ -7,9 +7,10 @@ exact executed SQL) for transparency and debugging.
 
 The executor obeys; it does not validate, format, or generate.
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -17,7 +18,7 @@ class ExecutionStatus(str, Enum):
     """Outcome category of an execution attempt."""
 
     SUCCESS = "success"
-    NOT_APPROVED = "not_approved"        # caller passed a non-approval
+    NOT_APPROVED = "not_approved"  # caller passed a non-approval
     EXECUTION_ERROR = "execution_error"  # SQL errored at runtime
     CONNECTION_ERROR = "connection_error"  # warehouse could not be opened
 
@@ -55,8 +56,5 @@ class ExecutionResult:
     def render(self) -> str:
         if self.ok:
             trunc = " (truncated)" if self.truncated else ""
-            return (
-                f"SUCCESS: {self.rows_returned} row(s){trunc} "
-                f"in {self.execution_time_ms:.1f} ms"
-            )
+            return f"SUCCESS: {self.rows_returned} row(s){trunc} in {self.execution_time_ms:.1f} ms"
         return f"{self.status.value.upper()}: {self.error_message}"

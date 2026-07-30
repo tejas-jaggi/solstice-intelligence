@@ -8,6 +8,8 @@
 ![DuckDB](https://img.shields.io/badge/DuckDB-Data%20Warehouse-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-REST%20API-green)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
+[![CI](https://github.com/tejas-jaggi/solstice-intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/tejas-jaggi/solstice-intelligence/actions/workflows/ci.yml)
+![Coverage](https://img.shields.io/badge/coverage-84%25-brightgreen)
 
 ------------------------------------------------------------------------
 

@@ -10,6 +10,7 @@ The assistant is constructed ONCE in the lifespan (main.py) and stored on
 app state; this provider simply hands out that single instance per request
 (construct-once / inject-per-request).
 """
+
 from __future__ import annotations
 
 from fastapi import Request

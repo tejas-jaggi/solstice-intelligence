@@ -14,6 +14,7 @@ Design rules encoded here:
     interpret the data).
   * Representative examples are attached so they render in the OpenAPI docs.
 """
+
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
@@ -30,11 +31,7 @@ class AskRequest(BaseModel):
     )
 
     model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {"question": "How many orders are in the warehouse?"}
-            ]
-        }
+        "json_schema_extra": {"examples": [{"question": "How many orders are in the warehouse?"}]}
     }
 
 

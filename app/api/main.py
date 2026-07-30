@@ -8,6 +8,7 @@ Owns application lifecycle and cross-cutting concerns:
 
 Contains no business logic — that all lives in the frozen Milestone 1 backend.
 """
+
 from __future__ import annotations
 
 import logging
@@ -17,7 +18,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 
-from app.api.models import AskResponse
 from app.api.routes import router
 from app.config import load_settings
 from app.llm.client import OpenAIClient

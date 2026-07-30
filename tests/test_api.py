@@ -5,6 +5,7 @@ override, so no test touches the network or spends OpenAI credit. The real
 lifespan (which builds real resources) is bypassed; we set app state directly
 and override the DI provider.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -14,14 +15,14 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.api.dependencies import get_assistant
+from app.api.routes import router
 from app.config import Settings
-from app.warehouse.connection import open_readonly
-from app.warehouse.schema import introspect
-from app.metadata.warehouse_metadata import build_warehouse_metadata
 from app.llm.client import FakeLLMClient
 from app.llm.orchestrator import AnalyticsAssistant
-from app.api.routes import router
-from app.api.dependencies import get_assistant
+from app.metadata.warehouse_metadata import build_warehouse_metadata
+from app.warehouse.connection import open_readonly
+from app.warehouse.schema import introspect
 from tests.test_warehouse_metadata_real import REAL_DDL
 
 
@@ -49,6 +50,7 @@ def build_assistant(tmp_path: Path, **client_kwargs) -> AnalyticsAssistant:
 def make_app(assistant) -> FastAPI:
     """Build a test app WITHOUT the real lifespan; inject the fake assistant."""
     import uuid
+
     app = FastAPI()
 
     @app.middleware("http")
@@ -69,10 +71,12 @@ def make_app(assistant) -> FastAPI:
 def client_factory(tmp_path):
     def _make(**client_kwargs):
         return TestClient(make_app(build_assistant(tmp_path, **client_kwargs)))
+
     return _make
 
 
 # ---------------------------------------------------------------- ask --------
+
 
 def test_ask_success_returns_200_and_structured_answer(client_factory):
     c = client_factory(sql="SELECT customer_key, net_revenue FROM Fact_Orders")
@@ -112,13 +116,14 @@ def test_no_query_is_200(client_factory):
 
 def test_malformed_request_is_422(client_factory):
     c = client_factory(sql="SELECT 1 FROM Fact_Orders")
-    r = c.post("/v1/ask", json={})              # missing 'question'
+    r = c.post("/v1/ask", json={})  # missing 'question'
     assert r.status_code == 422
     r2 = c.post("/v1/ask", json={"question": ""})  # empty
     assert r2.status_code == 422
 
 
 # --------------------------------------------------------------- ops ---------
+
 
 def test_health_is_liveness_only(client_factory):
     c = client_factory(sql="SELECT 1 FROM Fact_Orders")
@@ -153,6 +158,7 @@ def test_version_returns_app_and_milestone(client_factory):
 
 
 # --------------------------------------------------- routing / schema --------
+
 
 def test_unknown_route_is_404(client_factory):
     c = client_factory(sql="SELECT 1 FROM Fact_Orders")

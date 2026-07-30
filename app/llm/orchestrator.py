@@ -13,6 +13,7 @@ schema, or import the OpenAI SDK. It depends only on the LLMClient protocol and
 the existing gate/executor, so it is fully testable with a FakeLLMClient and no
 network.
 """
+
 from __future__ import annotations
 
 import time
@@ -76,12 +77,22 @@ class AnalyticsAssistant:
                 model_name=model,
                 model_message=proposed.message,
                 total_time_ms=elapsed(),
-                error_message=(
-                    "The assistant did not produce a query for this question."
-                ),
+                error_message=("The assistant did not produce a query for this question."),
             )
 
         candidate_sql = proposed.sql
+
+        # has_query (checked above) guarantees sql is a non-empty str; make that
+        # invariant explicit so the type is str, not str | None, from here on.
+        if candidate_sql is None:  # pragma: no cover - guaranteed by has_query above
+            return OrchestrationResult(
+                stage=PipelineStage.NO_QUERY_PROPOSED,
+                question=question,
+                model_name=model,
+                model_message=proposed.message,
+                total_time_ms=elapsed(),
+                error_message=("The assistant did not produce a query for this question."),
+            )
 
         # 3. Validation gate (Phase C). The orchestrator never inspects SQL itself.
         vresult = validate(candidate_sql, self._schema, self._settings)

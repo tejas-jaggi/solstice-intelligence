@@ -5,6 +5,7 @@ action is to propose a SQL query; that proposal is powerless until the gate
 approves it. Kept as a plain dict so client.py can hand it to the provider SDK
 without coupling the tool definition to any SDK types.
 """
+
 from __future__ import annotations
 
 RUN_QUERY_TOOL: dict = {

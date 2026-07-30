@@ -17,6 +17,7 @@ Two correctness rules carried from the backend:
     displayed rows (a presentation fact). The frontend never overrides backend
     truth; it may derive purely presentational facts (sharpened Rule 8).
 """
+
 from __future__ import annotations
 
 import streamlit as st

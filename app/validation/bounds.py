@@ -4,6 +4,7 @@ Separated from rules.py because this step *rewrites* the query (produces the
 safe, bounded SQL) rather than merely inspecting it. Enforced here at the gate,
 and again independently at execution time as a backstop.
 """
+
 from __future__ import annotations
 
 from sqlglot import expressions as exp
@@ -11,7 +12,7 @@ from sqlglot import expressions as exp
 from app.validation.parsing import DIALECT
 
 
-def apply_limit(statement: exp.Expression, max_rows: int, default_limit: int) -> str:
+def apply_limit(statement: exp.Query, max_rows: int, default_limit: int) -> str:
     """Return bounded SQL: inject a LIMIT if absent, clamp it if it exceeds max.
 
     Args:

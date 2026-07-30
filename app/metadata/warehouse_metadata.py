@@ -12,6 +12,7 @@ Grain distinctions captured deliberately:
   * Fact_Returns       -> return-line detail
   * Fact_Customer_Monthly_Snapshot -> derived customer-month state (snapshot key)
 """
+
 from __future__ import annotations
 
 from app.metadata.metadata import (
@@ -21,13 +22,14 @@ from app.metadata.metadata import (
     WarehouseMetadata,
 )
 
-
 _DIMENSIONS: tuple[DimensionMetadata, ...] = (
     DimensionMetadata("Dim_Customer", "Customers and descriptive attributes", "customer_key"),
     DimensionMetadata("Dim_Product", "Products and their attributes", "product_key"),
     DimensionMetadata("Dim_Date", "Calendar date dimension for time-based analysis", "date_key"),
     DimensionMetadata("Dim_Geography", "Geographic markets", "geography_key"),
-    DimensionMetadata("Dim_Marketing_Channel", "Marketing/acquisition channels", "marketing_channel_key"),
+    DimensionMetadata(
+        "Dim_Marketing_Channel", "Marketing/acquisition channels", "marketing_channel_key"
+    ),
     DimensionMetadata("Dim_Sales_Channel", "Sales channels", "sales_channel_key"),
     DimensionMetadata("Dim_Campaign", "Marketing campaigns", "campaign_key"),
     DimensionMetadata("Dim_Return_Reason", "Reasons a product was returned", "return_reason_key"),
