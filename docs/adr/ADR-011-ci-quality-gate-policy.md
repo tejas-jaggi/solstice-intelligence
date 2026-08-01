@@ -51,7 +51,7 @@ quality baseline:
 
 - Ruff lint: clean
 - Ruff formatting: compliant
-- mypy: 0 findings across 55 source files
+- mypy: 0 findings across 43 source files
 - pytest: 101/101 tests passing
 - pip-audit: no known dependency vulnerabilities
 
@@ -61,6 +61,17 @@ to make mypy a blocking quality gate for all future pull requests and commits.
 
 This promotion reflects an earned engineering milestone rather than a policy
 change made on a schedule.
+
+### Note on the source-file count
+
+The mypy checked-source-file count was reconciled to **43** during Phase B,
+verified directly from `mypy app frontend`. Earlier drafts of the Phase A records
+recorded inconsistent figures (40 in the Phase A completion report and 55 in this
+ADR). The zero-findings baseline that justified the promotion was never in
+question; this note corrects a recorded metric, not the decision. The count is a
+function of the source tree at a point in time and is expected to change as the
+repository grows; the promotion criterion — a sustained zero-finding baseline —
+does not depend on the exact number.
 
 ## CI performance philosophy
 

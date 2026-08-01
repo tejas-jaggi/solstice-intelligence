@@ -24,9 +24,44 @@ every query passes through a governed pipeline that validates the
 generated SQL before it reaches the warehouse. The goal is to build an
 analytics assistant that is accurate, transparent, and easy to trust.
 
-The project is being developed in milestones. At the end of **Milestone
-2 -- Phase G**, the repository contains a fully governed analytics
-backend together with a versioned REST API.
+The project is developed in milestones. Milestones 1 and 2 — the governed
+backend, the versioned REST API, and the Streamlit frontend — are complete and
+frozen. Milestone 3 (production engineering) is in progress: continuous
+integration and quality gates landed in Phase A, and developer-experience
+tooling in Phase B.
+
+------------------------------------------------------------------------
+
+## Quick Start
+
+Get the project running before reading how it works.
+
+**Prerequisites:** Python 3.14+, [`just`](https://just.systems) (developer task
+runner), and an OpenAI API key.
+
+```bash
+git clone https://github.com/tejas-jaggi/solstice-intelligence.git
+cd solstice-intelligence
+
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\Activate.ps1
+
+# install just once (macOS: brew install just | Windows: winget install Casey.Just
+# | any: cargo install just), then install runtime + dev dependencies:
+just setup
+
+cp .env.example .env               # Windows: copy .env.example .env
+#   edit .env and set OPENAI_API_KEY
+
+just verify                        # environment diagnostic — no network, no API cost
+just test                          # full deterministic suite
+
+just run-api                       # http://127.0.0.1:8000/docs   (terminal 1)
+just run-ui                        # Streamlit UI                 (terminal 2)
+```
+
+Full workflow, task reference, dependency policy, and troubleshooting:
+[Developer Guide](docs/developer/Developer_Guide.md).
 
 ------------------------------------------------------------------------
 
@@ -109,6 +144,7 @@ solstice-intelligence/
 │   ├── formatting/
 │   ├── llm/
 │   ├── metadata/
+│   ├── models/
 │   ├── semantic/
 │   ├── validation/
 │   └── warehouse/
@@ -124,11 +160,19 @@ solstice-intelligence/
 │
 ├── docs/
 │   ├── adr/
-│   └── assets/
+│   ├── assets/
+│   └── developer/
 │
 ├── scripts/
+│   ├── __init__.py
+│   └── verify_env.py
+│
 ├── tests/
 ├── data/
+├── requirements.txt
+├── requirements-dev.txt
+├── justfile
+├── pyproject.toml
 ├── README.md
 └── LICENSE
 ```
@@ -146,7 +190,7 @@ solstice-intelligence/
 
 ------------------------------------------------------------------------
 
-## REST API (Phase G)
+## REST API (Completed)
 
 **Main endpoint**
 
@@ -162,19 +206,19 @@ Swagger documentation is available after starting the API.
 
 ------------------------------------------------------------------------
 
-## Web Interface (Milestone 2 · Phase H)
- 
+## Web Interface (Completed)
+
 A thin Streamlit client provides a browser interface to the assistant. It
 consumes the REST API only — it never imports backend modules — so the
 presentation layer is fully decoupled from the governed pipeline and could be
 replaced by any other HTTP client (React, CLI, a chat bot) without backend
 changes (see ADR-010).
- 
+
 The interface reinforces the project's governing philosophy — *the LLM reasons,
 the warehouse provides truth, validation decides trust* — by making the governed
 workflow visible: every answer shows the structured result, the exact SQL that
 ran, a plain-English explanation of what the system did, and request metadata.
- 
+
 **Architecture**
  
 ```
@@ -182,23 +226,23 @@ Browser → Streamlit (frontend/) → HTTP → FastAPI (/v1) → AnalyticsAssist
 ```
  
 **Running it locally**
- 
+
 ```bash
 # 1. start the API (backend)
 uvicorn app.api.main:app --reload
- 
+
 # 2. in a second terminal, start the UI
 streamlit run frontend/streamlit_app.py
- 
+
 # optional: point the UI at a non-default API
 SOLSTICE_API_URL=http://localhost:8000 streamlit run frontend/streamlit_app.py
 ```
- 
+
 The UI displays the backend version (from `GET /version`) and a readiness
 indicator (from `GET /ready`), so the versioned, health-checked architecture is
-visible in the interface itself. 
+visible in the interface itself.
 The screenshots below show the released Phase H interface communicating with the governed REST API.
- 
+
 ## Interface Preview
 
 ### Homepage
@@ -212,9 +256,9 @@ The screenshots below show the released Phase H interface communicating with the
 ### Live Demonstration
 
 ![Solstice UI — demo](docs/assets/ui_demo.gif)
- 
+
 **Design notes (Phase H)**
- 
+
 - The frontend is intentionally thin: presentation, interaction, and REST
   communication only. No business logic, SQL, validation, or orchestration.
 - Each question is an independent request — the on-screen transcript is
@@ -229,11 +273,12 @@ The screenshots below show the released Phase H interface communicating with the
 
 ### Automated
 
--   101 automated tests (Backend: 86, Frontend: 15)
+-   112 automated tests (deterministic, zero-cost)
 -   API regression tests
 -   Validation tests
 -   Orchestrator tests
 -   Warehouse tests
+-   Environment-diagnostic tests (`scripts/verify_env.py`)
 
 ### Manual release verification
 
@@ -280,10 +325,24 @@ The screenshots below show the released Phase H interface communicating with the
 -   Frontend regression tests
 -   REST-based UI
 
-**Phase I (Planned)**
+### Milestone 3 — Production Engineering (In Progress)
 
--   Deployment
--   Operational improvements
+**Phase A — CI & Quality Gates** ✅ (`v1.2.1`)
+
+-   GitHub Actions on every push and pull request
+-   Blocking gates: Ruff (lint + format), pytest, mypy
+-   Advisory: coverage, pip-audit
+
+**Phase B — Developer Experience & Repository Standards** ✅ (release `v1.2.2` planned)
+
+-   `just` task runner (developer convenience; CI runs commands directly)
+-   Runtime / development dependency split, all dev tools pinned `==`
+-   `scripts/verify_env.py` environment diagnostic (no network, zero API cost)
+-   Developer Guide and reproducible clean-clone workflow
+-   CI aligned to Python 3.14
+
+**Phases C–E (Planned)** — Deployment, Release Engineering, Operational Hardening.
+Milestone 3 completes at `v1.3.0`.
 
 ------------------------------------------------------------------------
 
@@ -300,30 +359,16 @@ The screenshots below show the released Phase H interface communicating with the
 
 ------------------------------------------------------------------------
 
-## Getting Started
-
-``` bash
-pip install -r requirements.txt
-
-# Terminal 1
-python -m uvicorn app.api.main:app --reload
-
-# Terminal 2
-streamlit run frontend/streamlit_app.py
-```
-
-Open:
-
-`http://127.0.0.1:8000/docs`
-
-------------------------------------------------------------------------
-
 ## Roadmap
 
--   Milestone 1: Governed backend ✅
--   Milestone 2 -- Phase G: REST API ✅
--   Milestone 2 -- Phase H: Streamlit frontend ✅
--   Milestone 2 -- Phase I: Deployment
+-   Milestone 1 — Governed backend ✅
+-   Milestone 2 — Phase G: REST API ✅
+-   Milestone 2 — Phase H: Streamlit frontend ✅
+-   Milestone 3 — Phase A: CI & quality gates ✅
+-   Milestone 3 — Phase B: Developer experience & repository standards ✅
+-   Milestone 3 — Phase C: Deployment
+-   Milestone 3 — Phase D: Release engineering
+-   Milestone 3 — Phase E: Operational hardening
 
 ------------------------------------------------------------------------
 

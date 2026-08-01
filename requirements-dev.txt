@@ -1,0 +1,18 @@
+# Development & tooling dependencies (pinned exactly).
+# Runtime dependencies live in requirements.txt. For development, install both:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# These are pinned == on purpose: the BLOCKING CI gates (Ruff, mypy, pytest) must
+# be deterministic. An unpinned tool could reformat or re-type-check unchanged
+# code and turn CI red on a commit nobody touched — exactly the non-deterministic
+# build ADR-011 says a gate must never have.
+#
+# ruff is pinned to 0.16.0 to match ADR-011's formatter decision (its py314
+# formatter bug is why target-version is py312). Do not bump it without
+# re-evaluating that ADR.
+
+pytest==9.1.1
+pytest-cov==7.1.0
+ruff==0.16.0
+mypy==2.3.0
+pip-audit==2.10.1
