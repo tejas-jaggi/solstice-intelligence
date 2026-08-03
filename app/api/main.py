@@ -5,6 +5,8 @@ Owns application lifecycle and cross-cutting concerns:
     introspected once, client built once — no OpenAI call), tear down cleanly.
   * fail-fast config validation at startup.
   * request-ID middleware: every request gets a correlation ID at the edge.
+  * the Deployment Access Guard (ADR-012), constructed once and stored on
+    app.state for the /v1/ask route dependency.
 
 Contains no business logic — that all lives in the frozen Milestone 1 backend.
 """
@@ -18,6 +20,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 
+from app.api.access_guard import build_deployment_guard
+from app.api.build_info import get_app_version
 from app.api.routes import router
 from app.config import load_settings
 from app.llm.client import OpenAIClient
@@ -77,10 +81,14 @@ def create_app() -> FastAPI:
     """Build and return the FastAPI application."""
     app = FastAPI(
         title="Solstice Intelligence API",
-        version="1.2.0",
+        version=get_app_version(),
         summary="Governed natural-language analytics over a certified warehouse.",
         lifespan=lifespan,
     )
+
+    # Deployment Access Guard (ADR-012): constructed once; a pass-through unless
+    # enabled by environment. Stored on app.state for the /v1/ask dependency.
+    app.state.cost_guard = build_deployment_guard()
 
     @app.middleware("http")
     async def add_request_id(request: Request, call_next):

@@ -1,0 +1,41 @@
+# Render deployment blueprint for the Solstice Intelligence API.
+# Cloud Run / Fly.io are equivalent alternatives (same image, same env vars).
+# The Streamlit frontend is deployed separately (e.g. Streamlit Community Cloud)
+# with SOLSTICE_API_URL pointing at this service's public URL.
+
+services:
+  - type: web
+    name: solstice-intelligence-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /ready
+    dockerCommand: sh -c "uvicorn app.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+    envVars:
+      # --- Secret: set in the Render dashboard, never committed ---------------
+      - key: OPENAI_API_KEY
+        sync: false
+
+      # --- Reproducible model: a PINNED dated snapshot, not a floating alias --
+      #     Confirm the exact snapshot against your OpenAI account.
+      - key: OPENAI_MODEL
+        value: gpt-4o-2024-08-06
+
+      # --- Warehouse bundled into the image (repo-relative) ------------------
+      - key: WAREHOUSE_PATH
+        value: data/solstice_apparel.duckdb
+
+      # --- Safety caps -------------------------------------------------------
+      - key: MAX_ROWS
+        value: "1000"
+      - key: DEFAULT_LIMIT
+        value: "100"
+
+      # --- Deployment Access Guard: "Demo" mode ------------------------------
+      #     Rate limiter ON, Demo Access Gate OFF (relying on the rate limiter
+      #     plus the OpenAI account hard budget cap). To switch to "Restricted
+      #     demo", add SOLSTICE_DEMO_TOKEN here and have the frontend send it.
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "20"
+      - key: RATE_LIMIT_WINDOW_SECONDS
+        value: "60"

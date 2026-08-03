@@ -2,8 +2,10 @@
 
 Every test uses a FakeLLMClient-backed assistant injected via dependency
 override, so no test touches the network or spends OpenAI credit. The real
-lifespan (which builds real resources) is bypassed; we set app state directly
-and override the DI provider.
+lifespan (which builds real resources) is bypassed by using TestClient without
+its context-manager form; we build the app via create_app() so the test app has
+the same wiring as production (request-ID middleware and the Deployment Access
+Guard state), and override the DI provider.
 """
 
 from __future__ import annotations
@@ -16,7 +18,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.dependencies import get_assistant
-from app.api.routes import router
+from app.api.main import create_app
 from app.config import Settings
 from app.llm.client import FakeLLMClient
 from app.llm.orchestrator import AnalyticsAssistant
@@ -48,19 +50,17 @@ def build_assistant(tmp_path: Path, **client_kwargs) -> AnalyticsAssistant:
 
 
 def make_app(assistant) -> FastAPI:
-    """Build a test app WITHOUT the real lifespan; inject the fake assistant."""
-    import uuid
+    """Build the REAL app (create_app) and inject the fake assistant.
 
-    app = FastAPI()
-
-    @app.middleware("http")
-    async def add_request_id(request, call_next):
-        request.state.request_id = str(uuid.uuid4())
-        resp = await call_next(request)
-        resp.headers["X-Request-ID"] = request.state.request_id
-        return resp
-
-    app.include_router(router)
+    Using create_app() keeps the test app's wiring identical to production —
+    request-ID middleware AND the Deployment Access Guard state
+    (app.state.cost_guard, default-disabled) — so the harness cannot drift from
+    production as new app state is added. The real lifespan is not triggered
+    because TestClient is not used as a context manager here, so no config
+    validation, warehouse open, or OpenAI call occurs; the assistant comes from
+    the dependency override below.
+    """
+    app = create_app()
     app.state.assistant = assistant
     app.state.warehouse_ok = True
     app.dependency_overrides[get_assistant] = lambda: assistant

@@ -1,16 +1,14 @@
 name: CI
 
 # Runs on every push and pull request. No secrets are used and no OpenAI credit
-# is spent: the entire test suite is deterministic (FakeLLMClient + mocks).
+# is spent: the entire test suite is deterministic (FakeLLMClient + mocks), and
+# the image build/scan make no model call.
 #
-# Gate policy (ADR-011):
-#   BLOCKING      — ruff (lint + format), pytest, mypy
-#   INFORMATIONAL — coverage, pip-audit (never gate; coverage thresholds incentivize
-#                   low-value tests, and a changing CVE database would make builds
+# Gate policy (ADR-011, extended to the container layer in ADR-012):
+#   BLOCKING      — ruff (lint + format), pytest, mypy, docker build
+#   INFORMATIONAL — coverage, pip-audit, container image vulnerability scan
+#                   (never gate; a changing CVE database would make builds
 #                   non-deterministic)
-#
-# Performance philosophy: CI must stay fast enough that developers run it willingly.
-# Fast checks run first; dependencies are cached; the job stays single and lean.
 
 on:
   push:
@@ -57,7 +55,28 @@ jobs:
       - name: mypy (blocking)
         run: mypy app frontend
 
-      # ----------------
+      # ---- INFORMATIONAL -------------------------------------------------
       - name: pip-audit dependency scan (advisory)
         continue-on-error: true
         run: pip-audit --requirement requirements.txt
+
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---- BLOCKING: the image must build (no secret, no model call) -----
+      - name: Build image (blocking)
+        run: docker build -t solstice-intelligence:ci .
+
+      # ---- INFORMATIONAL: CVE database changes over time -> never gate ---
+      - name: Container image scan (advisory)
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: solstice-intelligence:ci
+          format: table
+          exit-code: "0"

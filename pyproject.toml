@@ -1,10 +1,16 @@
 [project]
 name = "solstice-intelligence"
-version = "1.2.1"
+version = "1.2.3"
 description = "Governed natural-language analytics over a certified dimensional warehouse."
 requires-python = ">=3.14"
 readme = "README.md"
 license = { text = "MIT" }
+
+# Repository milestone identity, surfaced by the public GET /version endpoint.
+# pyproject.toml is the sole version/identity definition; there is no runtime
+# version module.
+[tool.solstice]
+milestone = "milestone-3-phase-c"
 
 # ---------------------------------------------------------------------------
 # Ruff — linter + formatter (BLOCKING gate in CI).
@@ -36,11 +42,8 @@ ignore = [
 "frontend/tests/**" = ["B011"]
 
 # ---------------------------------------------------------------------------
-# mypy — type checking (ADVISORY in CI initially).
-# Promotion criterion: mypy becomes a BLOCKING gate once the repository reaches
-# a clean baseline (zero findings) and maintaining zero findings is practical.
-# Strictness is deliberately pragmatic at first, not --strict, to avoid a large
-# up-front cleanup or suppression spam.
+# mypy — type checking (BLOCKING gate in CI).
+# Strictness is deliberately pragmatic, not --strict, to avoid suppression spam.
 # ---------------------------------------------------------------------------
 [tool.mypy]
 python_version = "3.14"

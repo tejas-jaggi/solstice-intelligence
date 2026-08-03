@@ -12,6 +12,8 @@ import logging
 from fastapi import APIRouter, Depends, Request, Response, status
 
 from app.api import mapping
+from app.api.access_guard import enforce_deployment_guard
+from app.api.build_info import get_app_version, get_milestone
 from app.api.dependencies import get_assistant
 from app.api.models import (
     AskRequest,
@@ -26,11 +28,13 @@ logger = logging.getLogger("solstice.api")
 
 router = APIRouter()
 
-APP_VERSION = "1.2.0"
-MILESTONE = "milestone-2-phase-h"
 
-
-@router.post("/v1/ask", response_model=AskResponse, tags=["ask"])
+@router.post(
+    "/v1/ask",
+    response_model=AskResponse,
+    tags=["ask"],
+    dependencies=[Depends(enforce_deployment_guard)],
+)
 def ask(
     body: AskRequest,
     request: Request,
@@ -38,7 +42,9 @@ def ask(
 ) -> AskResponse:
     """Answer a natural-language question through the governed pipeline.
 
-    Pipeline outcomes (including refusals) return 200 with a status field.
+    Pipeline outcomes (including refusals) return 200 with a status field. The
+    Deployment Access Guard (ADR-012) protects this endpoint against unbounded
+    OpenAI spend; it is a pass-through unless enabled by environment.
     """
     request_id = getattr(request.state, "request_id", "unknown")
     result = assistant.ask(body.question)
@@ -84,5 +90,5 @@ def ready(request: Request, response: Response) -> ReadyResponse:
 
 @router.get("/version", response_model=VersionResponse, tags=["ops"])
 def version() -> VersionResponse:
-    """Application version and repository milestone. Static, no I/O."""
-    return VersionResponse(app_version=APP_VERSION, milestone=MILESTONE)
+    """Application version and milestone, single-sourced from pyproject.toml."""
+    return VersionResponse(app_version=get_app_version(), milestone=get_milestone())

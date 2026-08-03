@@ -7,6 +7,7 @@
 ![Python](https://img.shields.io/badge/Python-3.14-blue)
 ![DuckDB](https://img.shields.io/badge/DuckDB-Data%20Warehouse-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-REST%20API-green)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 [![CI](https://github.com/tejas-jaggi/solstice-intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/tejas-jaggi/solstice-intelligence/actions/workflows/ci.yml)
 ![Coverage](https://img.shields.io/badge/coverage-84%25-brightgreen)
@@ -27,8 +28,9 @@ analytics assistant that is accurate, transparent, and easy to trust.
 The project is developed in milestones. Milestones 1 and 2 — the governed
 backend, the versioned REST API, and the Streamlit frontend — are complete and
 frozen. Milestone 3 (production engineering) is in progress: continuous
-integration and quality gates landed in Phase A, and developer-experience
-tooling in Phase B.
+integration and quality gates landed in Phase A, developer-experience tooling in
+Phase B, and Phase C packaged the system as a reproducible, self-contained
+deployment artifact.
 
 ------------------------------------------------------------------------
 
@@ -62,6 +64,7 @@ just run-ui                        # Streamlit UI                 (terminal 2)
 
 Full workflow, task reference, dependency policy, and troubleshooting:
 [Developer Guide](docs/developer/Developer_Guide.md).
+To build and run the container, see the [Deployment Guide](docs/developer/Deployment_Guide.md).
 
 ------------------------------------------------------------------------
 
@@ -97,6 +100,7 @@ validation, and deterministic execution.
 -   Request ID tracing
 -   Typed response models
 -   Automated regression testing
+-   Reproducible Docker deployment with a cost-safety guard
 
 ------------------------------------------------------------------------
 
@@ -159,16 +163,22 @@ solstice-intelligence/
 │   └── tests/
 │
 ├── docs/
-│   ├── adr/
+│   ├── adr/                 # ADR-004 … ADR-012
 │   ├── assets/
-│   └── developer/
+│   └── developer/           # Developer_Guide.md, Deployment_Guide.md
 │
 ├── scripts/
 │   ├── __init__.py
 │   └── verify_env.py
 │
+├── data/                    # bundled certified warehouse artifact + provenance
+│   ├── solstice_apparel.duckdb
+│   └── README.md
+│
 ├── tests/
-├── data/
+├── Dockerfile
+├── .dockerignore
+├── render.yaml
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── justfile
@@ -187,6 +197,7 @@ solstice-intelligence/
 -   Every architectural decision is documented with an ADR.
 -   Public APIs are versioned and treated as stable contracts.
 -   New features should not weaken existing guarantees.
+-   Deployments are reproducible, self-contained artifacts.
 
 ------------------------------------------------------------------------
 
@@ -202,7 +213,10 @@ Supporting endpoints:
 -   GET /ready
 -   GET /version
 
-Swagger documentation is available after starting the API.
+Swagger documentation is available after starting the API. In a public
+deployment, `POST /v1/ask` is protected by the Deployment Access Guard
+(see [ADR-012](docs/adr/ADR-012-deployment-architecture.md)); the operational
+endpoints stay open and never trigger an OpenAI call.
 
 ------------------------------------------------------------------------
 
@@ -269,15 +283,69 @@ The screenshots below show the released Phase H interface communicating with the
 
 ------------------------------------------------------------------------
 
+## Deployment (Completed)
+
+The backend is packaged as a reproducible Docker image and the certified
+warehouse is bundled with it, so the deployment is self-contained and portable.
+Design rationale is in [ADR-012](docs/adr/ADR-012-deployment-architecture.md);
+operational details are in the
+[Deployment Guide](docs/developer/Deployment_Guide.md).
+
+**Reproducible artifact**
+
+- Base image pinned by digest (not a moving tag).
+- Non-root container execution.
+- Runtime dependencies only (`requirements.txt`); dev tooling excluded.
+- `OPENAI_MODEL` pinned to a dated snapshot, never a floating alias.
+- The certified `solstice_apparel.duckdb` (~34.5 MB) is bundled read-only as an
+  immutable deployment artifact (produced and certified by the separate
+  Customer Revenue Analytics project; provenance and SHA-256 in `data/README.md`).
+
+**Cost safety**
+
+A public `POST /v1/ask` makes a real, paid model call, so it is protected by the
+**Deployment Access Guard** — a route-level dependency combining a deterministic
+in-memory rate limiter and an optional Demo Access Gate token. It is *not*
+authentication (that remains deferred); it exists only to protect OpenAI spend.
+The guard defaults to disabled, so local development and the test suite are
+unaffected; a deployment enables it through environment variables. An OpenAI
+account hard budget cap is the platform-independent financial backstop.
+
+| Mode            | Rate limiter | Demo Access Gate | OpenAI account cap | Where it runs     |
+|-----------------|--------------|------------------|--------------------|-------------------|
+| Development     | off          | off              | n/a                | Local             |
+| Demo            | on           | off              | on                 | Public demo       |
+| Restricted demo | on           | on               | on                 | Gated public demo |
+
+**Build and run**
+
+```bash
+docker build -t solstice-intelligence .          # after pinning the base-image digest
+
+docker run --rm -p 8000:8000 \
+  -e OPENAI_API_KEY=sk-... \
+  -e OPENAI_MODEL=gpt-4o-2024-08-06 \
+  -e RATE_LIMIT_MAX_REQUESTS=20 \
+  solstice-intelligence
+# API + Swagger: http://127.0.0.1:8000/docs
+```
+
+A `render.yaml` blueprint is provided; Cloud Run and Fly.io use the same image
+and environment variables.
+
+------------------------------------------------------------------------
+
 ## Testing & Verification
 
 ### Automated
 
--   112 automated tests (deterministic, zero-cost)
+-   127 automated tests (deterministic, zero-cost)
 -   API regression tests
 -   Validation tests
 -   Orchestrator tests
 -   Warehouse tests
+-   Deployment Access Guard tests
+-   Version-metadata tests
 -   Environment-diagnostic tests (`scripts/verify_env.py`)
 
 ### Manual release verification
@@ -290,6 +358,7 @@ The screenshots below show the released Phase H interface communicating with the
 -   Successful governed analytics query
 -   Invalid request handling
 -   Truthful no-query behaviour
+-   Reproducible Docker image build (digest-pinned base, warehouse bundled)
 
 ------------------------------------------------------------------------
 
@@ -333,7 +402,7 @@ The screenshots below show the released Phase H interface communicating with the
 -   Blocking gates: Ruff (lint + format), pytest, mypy
 -   Advisory: coverage, pip-audit
 
-**Phase B — Developer Experience & Repository Standards** ✅ (release `v1.2.2` planned)
+**Phase B — Developer Experience & Repository Standards** ✅ (`v1.2.2`)
 
 -   `just` task runner (developer convenience; CI runs commands directly)
 -   Runtime / development dependency split, all dev tools pinned `==`
@@ -341,7 +410,16 @@ The screenshots below show the released Phase H interface communicating with the
 -   Developer Guide and reproducible clean-clone workflow
 -   CI aligned to Python 3.14
 
-**Phases C–E (Planned)** — Deployment, Release Engineering, Operational Hardening.
+**Phase C — Deployment** ✅ (`v1.2.3`)
+
+-   Reproducible Docker image (digest-pinned base, non-root, runtime-only deps)
+-   Certified warehouse bundled as an immutable deployment artifact
+-   Deployment Access Guard on `POST /v1/ask` (rate limiter + optional demo gate)
+-   Truthful `/version`, single-sourced from `pyproject.toml`
+-   Advisory container image scan in CI (build blocks; scan reports)
+-   ADR-012 and Deployment Guide
+
+**Phases D–E (Planned)** — Release Engineering, Operational Hardening.
 Milestone 3 completes at `v1.3.0`.
 
 ------------------------------------------------------------------------
@@ -355,6 +433,7 @@ Milestone 3 completes at `v1.3.0`.
 -   sqlglot
 -   Pydantic
 -   Pytest
+-   Docker
 -   Git
 
 ------------------------------------------------------------------------
@@ -366,7 +445,7 @@ Milestone 3 completes at `v1.3.0`.
 -   Milestone 2 — Phase H: Streamlit frontend ✅
 -   Milestone 3 — Phase A: CI & quality gates ✅
 -   Milestone 3 — Phase B: Developer experience & repository standards ✅
--   Milestone 3 — Phase C: Deployment
+-   Milestone 3 — Phase C: Deployment ✅
 -   Milestone 3 — Phase D: Release engineering
 -   Milestone 3 — Phase E: Operational hardening
 
