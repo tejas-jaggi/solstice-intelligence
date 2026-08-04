@@ -4,11 +4,12 @@ name: CI
 # is spent: the entire test suite is deterministic (FakeLLMClient + mocks), and
 # the image build/scan make no model call.
 #
+# CI answers "Can this commit merge?". The separate release workflow answers
+# "Can this commit become an official release?" — a higher assurance level.
+#
 # Gate policy (ADR-011, extended to the container layer in ADR-012):
 #   BLOCKING      — ruff (lint + format), pytest, mypy, docker build
 #   INFORMATIONAL — coverage, pip-audit, container image vulnerability scan
-#                   (never gate; a changing CVE database would make builds
-#                   non-deterministic)
 
 on:
   push:
@@ -26,10 +27,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.14"
           cache: "pip"
@@ -66,7 +67,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # ---- BLOCKING: the image must build (no secret, no model call) -----
       - name: Build image (blocking)

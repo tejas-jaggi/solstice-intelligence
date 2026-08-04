@@ -1,37 +1,32 @@
-# Solstice Intelligence — developer task runner.
+# Solstice Intelligence — developer task runner (https://just.systems).
 #
-# Convenience only.
-# CI runs the underlying commands directly.
-# Precondition:
-#   - Virtual environment is created and activated.
-#   - See README Quick Start for initial bootstrap.
+# CONVENIENCE ONLY. CI and the release workflow run these underlying commands
+# directly; `just` never sits between automation and the tools. Precondition: a
+# virtual environment is created and activated (see the README Quick Start).
 
+# Show all recipes.
 default:
     @just --list
 
-# Install runtime + development dependencies.
+# Install runtime + development dependencies into the active venv.
 setup:
     python -m pip install --upgrade pip
     pip install -r requirements.txt -r requirements-dev.txt
-    @echo "Dependencies installed."
-    @echo "Next:"
-    @echo "  1. Copy .env.example to .env"
-    @echo "  2. Set OPENAI_API_KEY"
-    @echo "  3. Run: just verify"
+    @echo "Deps installed. Copy .env.example to .env, set OPENAI_API_KEY, then: just verify"
 
-# Environment diagnostics.
+# Environment diagnostic (no network, no OpenAI call).
 verify:
     python scripts/verify_env.py
 
-# Full deterministic test suite.
+# Full deterministic test suite with coverage (mirrors CI).
 test:
     pytest --cov --cov-report=term-missing
 
-# Ruff lint.
+# Lint (mirrors the CI blocking gate).
 lint:
     ruff check .
 
-# Verify formatting.
+# Formatting check (mirrors the CI blocking gate).
 format-check:
     ruff format --check .
 
@@ -39,14 +34,19 @@ format-check:
 format:
     ruff format .
 
-# Static typing.
+# Type-check app + frontend (mirrors the CI blocking gate).
 typecheck:
     mypy app frontend
 
-# Run backend.
+# Verify release version consistency (tag <-> pyproject <-> /version).
+# Example: just check-version v1.2.4
+check-version version:
+    python scripts/check_version.py {{version}}
+
+# Start the backend API with reload.
 run-api:
     python -m uvicorn app.api.main:app --reload
 
-# Run frontend.
+# Start the Streamlit frontend.
 run-ui:
     streamlit run frontend/streamlit_app.py

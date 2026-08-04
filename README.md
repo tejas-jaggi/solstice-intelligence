@@ -10,7 +10,7 @@
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 [![CI](https://github.com/tejas-jaggi/solstice-intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/tejas-jaggi/solstice-intelligence/actions/workflows/ci.yml)
-![Coverage](https://img.shields.io/badge/coverage-84%25-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-88%25-brightgreen)
 
 ------------------------------------------------------------------------
 
@@ -339,7 +339,7 @@ and environment variables.
 
 ### Automated
 
--   127 automated tests (deterministic, zero-cost)
+-   135 automated tests (deterministic, zero-cost)
 -   API regression tests
 -   Validation tests
 -   Orchestrator tests

@@ -83,7 +83,7 @@ of CI, which has neither a warehouse nor a key.
 `just test` runs the full suite with coverage. Tests are deterministic and
 zero-cost: the LLM is faked and HTTP is mocked, so no test needs the network, a
 real model call, or secrets. Coverage is measured for information only and never
-gates a build. The current suite is 112 tests at 84% coverage.
+gates a build. The current suite is 135 tests at 88% coverage.
 
 ---
 

@@ -1,0 +1,157 @@
+name: Release
+
+# Independent RELEASE VERIFICATION — deliberately distinct from ci.yml.
+#   CI answers:      "Can this commit merge?"
+#   Release answers: "Can this commit become an official release?"
+# These are different engineering guarantees, so the release workflow re-runs the
+# quality gates AND adds release-only checks (version consistency, warehouse
+# provenance) before it publishes anything. It is not a duplicate of CI; it is a
+# higher assurance level.
+#
+# Like CI, it uses no secrets beyond the built-in GITHUB_TOKEN and spends no
+# OpenAI credit: every step is deterministic and makes no model call.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version to verify/publish (e.g. v1.2.4)"
+        required: true
+        type: string
+
+permissions:
+  contents: write   # create the GitHub Release
+  packages: write   # push the image to GHCR
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+jobs:
+  verify:
+    name: Release verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Resolve release ref
+        id: resolve
+        run: |
+          REF="${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref }}"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "version=${REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      # ---- Release-only checks ------------------------------------------
+      - name: Version consistency (tag <-> pyproject <-> /version)
+        run: python scripts/check_version.py "${{ steps.resolve.outputs.ref }}"
+
+      - name: Warehouse provenance (SHA-256 sidecar)
+        run: |
+          EXPECTED="$(tr -d '[:space:]' < data/solstice_apparel.duckdb.sha256 | cut -d= -f2 | tr 'A-F' 'a-f')"
+          ACTUAL="$(sha256sum data/solstice_apparel.duckdb | awk '{print $1}')"
+          echo "expected=$EXPECTED"
+          echo "actual  =$ACTUAL"
+          if [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "::error::Bundled warehouse SHA-256 does not match its recorded provenance."
+            exit 1
+          fi
+
+      # ---- Independent re-run of the blocking quality gates -------------
+      - name: Ruff lint
+        run: ruff check .
+      - name: Ruff format check
+        run: ruff format --check .
+      - name: Tests
+        run: pytest -q
+      - name: mypy
+        run: mypy app frontend
+
+  publish:
+    name: Build & publish image
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase image name
+        id: img
+        run: echo "name=$(echo '${{ env.IMAGE_NAME }}' | tr 'A-Z' 'a-z')" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        run: docker build -t "${{ steps.img.outputs.name }}:${{ needs.verify.outputs.version }}" -t "${{ steps.img.outputs.name }}:latest" .
+
+      - name: Advisory image scan
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ steps.img.outputs.name }}:${{ needs.verify.outputs.version }}
+          format: table
+          exit-code: "0"
+
+      - name: Push image
+        run: |
+          docker push "${{ steps.img.outputs.name }}:${{ needs.verify.outputs.version }}"
+          docker push "${{ steps.img.outputs.name }}:latest"
+
+  release:
+    name: Create GitHub Release
+    needs: [verify, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Extract changelog section
+        id: notes
+        run: |
+          VERSION="${{ needs.verify.outputs.version }}"
+          STRIPPED="${VERSION#v}"
+          # Print the body under "## [x.y.z]" up to the next "## [" heading.
+          awk -v v="$STRIPPED" '
+            $0 ~ "^## \\[" v "\\]" {grab=1; next}
+            grab && /^## \[/ {exit}
+            grab {print}
+          ' CHANGELOG.md > release_notes.md
+          if [ ! -s release_notes.md ]; then
+            echo "Release $VERSION. See CHANGELOG.md." > release_notes.md
+          fi
+          echo "image=$(echo 'ghcr.io/${{ github.repository }}' | tr 'A-Z' 'a-z'):$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.verify.outputs.version }}
+          name: ${{ needs.verify.outputs.version }}
+          body_path: release_notes.md
+          append_body: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
