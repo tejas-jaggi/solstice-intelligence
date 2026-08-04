@@ -146,7 +146,9 @@ def render(outcomes: list[CheckOutcome]) -> str:
         mark = "\u2713" if o.ok else "\u2717"  # ✓ / ✗
         lines.append(f"{(o.label + ' ').ljust(24, '.')} {mark} {o.detail}")
     lines.append("")
-    lines.append(("Result ").ljust(24, ".") + (" CONSISTENT" if is_consistent(outcomes) else " INCONSISTENT"))
+    lines.append(
+        ("Result ").ljust(24, ".") + (" CONSISTENT" if is_consistent(outcomes) else " INCONSISTENT")
+    )
     return "\n".join(lines)
 
 

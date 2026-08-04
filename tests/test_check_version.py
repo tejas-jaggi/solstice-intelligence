@@ -25,8 +25,8 @@ def test_normalize_ref_forms():
 
 def test_parse_tag_version_valid_and_invalid():
     assert cv.parse_tag_version("v1.2.4")[0] == "1.2.4"
-    assert cv.parse_tag_version("1.2.4")[0] is None      # missing 'v'
-    assert cv.parse_tag_version("v1.2")[0] is None        # not X.Y.Z
+    assert cv.parse_tag_version("1.2.4")[0] is None  # missing 'v'
+    assert cv.parse_tag_version("v1.2")[0] is None  # not X.Y.Z
     assert cv.parse_tag_version("vabc")[0] is None
     assert cv.parse_tag_version(None)[0] is None
 

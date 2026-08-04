@@ -66,7 +66,7 @@ jobs:
 
       - name: Warehouse provenance (SHA-256 sidecar)
         run: |
-          EXPECTED="$(tr -d '[:space:]' < data/solstice_apparel.duckdb.sha256 | cut -d= -f2 | tr 'A-F' 'a-f')"
+          EXPECTED="$(awk '{print $1}' data/solstice_apparel.duckdb.sha256 | tr 'A-F' 'a-f')"
           ACTUAL="$(sha256sum data/solstice_apparel.duckdb | awk '{print $1}')"
           echo "expected=$EXPECTED"
           echo "actual  =$ACTUAL"
