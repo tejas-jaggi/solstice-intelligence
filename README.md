@@ -22,15 +22,16 @@ intelligence.
 
 Instead of allowing an AI model to generate and execute SQL directly,
 every query passes through a governed pipeline that validates the
-generated SQL before it reaches the warehouse. The goal is to build an
-analytics assistant that is accurate, transparent, and easy to trust.
+generated SQL before it reaches the warehouse. The goal is an analytics
+assistant that is accurate, transparent, and easy to trust.
 
-The project is developed in milestones. Milestones 1 and 2 — the governed
-backend, the versioned REST API, and the Streamlit frontend — are complete and
-frozen. Milestone 3 (production engineering) is in progress: continuous
-integration and quality gates landed in Phase A, developer-experience tooling in
-Phase B, and Phase C packaged the system as a reproducible, self-contained
-deployment artifact.
+The project was developed across three milestones. Milestones 1 and 2 — the
+governed backend, the versioned REST API, and the Streamlit frontend — are complete
+and frozen. **Milestone 3 (production engineering) is complete:** continuous
+integration and quality gates (Phase A), developer experience (Phase B), a
+reproducible Docker deployment (Phase C), tag-driven release engineering with GHCR
+publishing (Phase D), and operational hardening (Phase E). Milestone 3 completes at
+`v1.3.0`.
 
 ------------------------------------------------------------------------
 
@@ -62,27 +63,25 @@ just run-api                       # http://127.0.0.1:8000/docs   (terminal 1)
 just run-ui                        # Streamlit UI                 (terminal 2)
 ```
 
-Full workflow, task reference, dependency policy, and troubleshooting:
+Full workflow, task reference, and troubleshooting:
 [Developer Guide](docs/developer/Developer_Guide.md).
-To build and run the container, see the [Deployment Guide](docs/developer/Deployment_Guide.md).
+To build and run the container: [Deployment Guide](docs/developer/Deployment_Guide.md).
+To cut a release: [Release Guide](docs/developer/Release_Guide.md).
 
 ------------------------------------------------------------------------
 
 ## Why I Built This
 
-Many AI-powered SQL assistants focus on generating queries quickly. This
-project focuses on engineering discipline.
+Many AI-powered SQL assistants focus on generating queries quickly. This project
+focuses on engineering discipline:
 
-The main questions behind Solstice Intelligence are:
+- How can an AI assistant answer questions without blindly trusting AI-generated SQL?
+- How can a warehouse remain the source of truth?
+- How can an analytics system be designed so each layer has a single responsibility?
 
--   How can an AI assistant answer questions without blindly trusting
-    AI-generated SQL?
--   How can a warehouse remain the source of truth?
--   How can an analytics system be designed so that each layer has a
-    single responsibility?
-
-The result is a layered architecture with clear boundaries, automated
-validation, and deterministic execution.
+The result is a layered architecture with clear boundaries, automated validation,
+deterministic execution, and production-grade CI, deployment, release engineering,
+and operational hardening.
 
 ------------------------------------------------------------------------
 
@@ -90,17 +89,15 @@ validation, and deterministic execution.
 
 -   Natural-language analytics using the OpenAI Responses API
 -   Schema-aware SQL generation
--   SQL validation using sqlglot
--   Allowlist-first validation rules
--   Read-only query execution
--   DuckDB dimensional warehouse
--   FastAPI REST API (`/v1`)
--   Health, readiness, and version endpoints
--   OpenAPI / Swagger documentation
--   Request ID tracing
--   Typed response models
--   Automated regression testing
+-   SQL validation using sqlglot (allowlist-first rules)
+-   Read-only query execution with a row-cap backstop
+-   DuckDB dimensional warehouse (certified, immutable, bundled as a deployment artifact)
+-   FastAPI REST API (`/v1`) with health, readiness, and version endpoints
+-   OpenAPI / Swagger documentation and request-ID tracing
 -   Reproducible Docker deployment with a cost-safety guard
+-   Tag-driven release engineering with GHCR publishing
+-   Structured, metadata-only operational logging and a bounded LLM request timeout
+-   Deterministic, zero-cost automated testing
 
 ------------------------------------------------------------------------
 
@@ -119,7 +116,7 @@ Business User
  Schema Grounding
       │
       ▼
- OpenAI Responses API
+ OpenAI Responses API  (request-timeout bounded)
       │
       ▼
  SQL Validation Gate
@@ -134,7 +131,7 @@ Business User
  Structured Response
 ```
 
-> **The LLM reasons. The warehouse provides truth.**
+> **The LLM reasons. The warehouse provides truth. Validation decides trust.**
 
 ------------------------------------------------------------------------
 
@@ -143,95 +140,66 @@ Business User
 ``` text
 solstice-intelligence/
 ├── app/
-│   ├── api/
-│   ├── execution/
-│   ├── formatting/
-│   ├── llm/
-│   ├── metadata/
-│   ├── models/
-│   ├── semantic/
-│   ├── validation/
-│   └── warehouse/
+│   ├── api/            # routes, contract, mapping, DI, main, access_guard,
+│   │                   # build_info, logging_config, readiness
+│   ├── execution/      # read-only executor
+│   ├── formatting/     # deterministic response formatting
+│   ├── llm/            # LLM client (timeout-bounded), tool, orchestrator
+│   ├── metadata/       # structural warehouse metadata
+│   ├── models/         # reserved (empty)
+│   ├── semantic/       # schema grounding
+│   ├── validation/     # SQL validation gate
+│   └── warehouse/      # read-only DuckDB connection + introspection
 │
-│── frontend/
-│   ├── streamlit_app.py
-│   ├── api_client.py
-│   ├── fake_client.py
-│   ├── models.py
-│   ├── components.py
-│   ├── config.py
-│   └── tests/
-│
-├── docs/
-│   ├── adr/                 # ADR-004 … ADR-012
-│   ├── assets/
-│   └── developer/           # Developer_Guide.md, Deployment_Guide.md
-│
-├── scripts/
-│   ├── __init__.py
-│   └── verify_env.py
-│
-├── data/                    # bundled certified warehouse artifact + provenance
-│   ├── solstice_apparel.duckdb
-│   └── README.md
-│
+├── frontend/           # HTTP-only Streamlit client + tests
+├── scripts/            # verify_env, check_version, dev utilities
+├── data/               # certified warehouse + .sha256 sidecar + README
 ├── tests/
-├── Dockerfile
-├── .dockerignore
-├── render.yaml
-├── requirements.txt
-├── requirements-dev.txt
-├── justfile
-├── pyproject.toml
-├── README.md
-└── LICENSE
+├── docs/
+│   ├── adr/            # ADR-004 … ADR-013
+│   ├── assets/
+│   ├── developer/      # Developer_Guide, Deployment_Guide, Release_Guide
+│   └── phase_completion_milestone3/   # Phase A–E completion reports
+├── .github/workflows/  # ci.yml, release.yml
+├── Dockerfile, .dockerignore, render.yaml
+├── requirements.txt, requirements-dev.txt
+├── justfile, pyproject.toml, CHANGELOG.md
+├── README.md, LICENSE
 ```
 
 ------------------------------------------------------------------------
 
 ## Engineering Principles
 
--   The warehouse is the source of truth.
+-   The warehouse is the source of truth; the LLM only proposes.
 -   AI output is never trusted without validation.
 -   Business logic and presentation stay separate.
 -   Every architectural decision is documented with an ADR.
 -   Public APIs are versioned and treated as stable contracts.
--   New features should not weaken existing guarantees.
--   Deployments are reproducible, self-contained artifacts.
+-   Deployments are reproducible, self-contained artifacts; releases are verified,
+    tag-driven events.
+-   Operational logs are metadata-only — never prompts, SQL, results, or secrets.
+-   New work should not weaken existing guarantees.
 
 ------------------------------------------------------------------------
 
-## REST API (Completed)
+## REST API
 
-**Main endpoint**
+**Main endpoint:** `POST /v1/ask`
 
-`POST /v1/ask`
-
-Supporting endpoints:
-
--   GET /health
--   GET /ready
--   GET /version
-
-Swagger documentation is available after starting the API. In a public
-deployment, `POST /v1/ask` is protected by the Deployment Access Guard
-(see [ADR-012](docs/adr/ADR-012-deployment-architecture.md)); the operational
-endpoints stay open and never trigger an OpenAI call.
+**Operational endpoints:** `GET /health` (liveness), `GET /ready` (live readiness —
+`SELECT 1` on the warehouse, never an LLM call), `GET /version`. Swagger is served at
+`/docs`. In a public deployment `POST /v1/ask` is protected by the Deployment Access
+Guard (see [ADR-012](docs/adr/ADR-012-deployment-architecture.md)); the operational
+endpoints stay open and cost nothing.
 
 ------------------------------------------------------------------------
 
-## Web Interface (Completed)
+## Web Interface
 
-A thin Streamlit client provides a browser interface to the assistant. It
-consumes the REST API only — it never imports backend modules — so the
-presentation layer is fully decoupled from the governed pipeline and could be
-replaced by any other HTTP client (React, CLI, a chat bot) without backend
-changes (see ADR-010).
-
-The interface reinforces the project's governing philosophy — *the LLM reasons,
-the warehouse provides truth, validation decides trust* — by making the governed
-workflow visible: every answer shows the structured result, the exact SQL that
-ran, a plain-English explanation of what the system did, and request metadata.
+A thin Streamlit client provides a browser interface to the assistant. It consumes
+the REST API only — it never imports backend modules (see ADR-010) — so the
+presentation layer is fully decoupled and could be replaced by any other HTTP client.
 
 **Architecture**
  
@@ -242,74 +210,42 @@ Browser → Streamlit (frontend/) → HTTP → FastAPI (/v1) → AnalyticsAssist
 **Running it locally**
 
 ```bash
-# 1. start the API (backend)
-uvicorn app.api.main:app --reload
-
-# 2. in a second terminal, start the UI
-streamlit run frontend/streamlit_app.py
-
-# optional: point the UI at a non-default API
-SOLSTICE_API_URL=http://localhost:8000 streamlit run frontend/streamlit_app.py
+uvicorn app.api.main:app --reload                    # backend
+streamlit run frontend/streamlit_app.py              # UI (second terminal)
+SOLSTICE_API_URL=http://localhost:8000 streamlit run frontend/streamlit_app.py  # non-default API
 ```
-
-The UI displays the backend version (from `GET /version`) and a readiness
-indicator (from `GET /ready`), so the versioned, health-checked architecture is
-visible in the interface itself.
-The screenshots below show the released Phase H interface communicating with the governed REST API.
 
 ## Interface Preview
 
 ### Homepage
-
 ![Solstice UI — homepage](docs/assets/ui_home.png)
-
 ### Successful Analytics Query
-
 ![Solstice UI — successful answer with executed SQL](docs/assets/ui_success.png)
-
 ### Live Demonstration
-
 ![Solstice UI — demo](docs/assets/ui_demo.gif)
-
-**Design notes (Phase H)**
-
-- The frontend is intentionally thin: presentation, interaction, and REST
-  communication only. No business logic, SQL, validation, or orchestration.
-- Each question is an independent request — the on-screen transcript is
-  render-only and is never resent to the model (conversation memory is deferred).
-- Frontend tests are deterministic and zero-cost: a `FakeApiClient` (sharing the
-  same protocol as the real client) and an httpx mock transport mean no server,
-  network, or OpenAI call is needed. The assembled UI is verified manually.
 
 ------------------------------------------------------------------------
 
-## Deployment (Completed)
+## Deployment
 
-The backend is packaged as a reproducible Docker image and the certified
-warehouse is bundled with it, so the deployment is self-contained and portable.
-Design rationale is in [ADR-012](docs/adr/ADR-012-deployment-architecture.md);
-operational details are in the
+The backend is packaged as a reproducible Docker image with the certified warehouse
+bundled, so the deployment is self-contained and portable. Rationale:
+[ADR-012](docs/adr/ADR-012-deployment-architecture.md); operations:
 [Deployment Guide](docs/developer/Deployment_Guide.md).
 
-**Reproducible artifact**
-
-- Base image pinned by digest (not a moving tag).
-- Non-root container execution.
-- Runtime dependencies only (`requirements.txt`); dev tooling excluded.
-- `OPENAI_MODEL` pinned to a dated snapshot, never a floating alias.
+- Base image pinned by digest; non-root execution; runtime dependencies only.
+- `OPENAI_MODEL` pinned to a dated snapshot (never a floating alias).
 - The certified `solstice_apparel.duckdb` (~34.5 MB) is bundled read-only as an
-  immutable deployment artifact (produced and certified by the separate
-  Customer Revenue Analytics project; provenance and SHA-256 in `data/README.md`).
+  immutable artifact (produced and certified by the separate Customer Revenue
+  Analytics project; provenance and SHA-256 in `data/README.md` and its `.sha256`
+  sidecar).
 
-**Cost safety**
-
-A public `POST /v1/ask` makes a real, paid model call, so it is protected by the
-**Deployment Access Guard** — a route-level dependency combining a deterministic
-in-memory rate limiter and an optional Demo Access Gate token. It is *not*
-authentication (that remains deferred); it exists only to protect OpenAI spend.
-The guard defaults to disabled, so local development and the test suite are
-unaffected; a deployment enables it through environment variables. An OpenAI
-account hard budget cap is the platform-independent financial backstop.
+**Cost safety.** A public `POST /v1/ask` makes a real, paid model call, so it is
+protected by the **Deployment Access Guard** — a route-level dependency combining a
+deterministic in-memory rate limiter and an optional Demo Access Gate token. It is
+*not* authentication; it exists only to protect OpenAI spend, defaults to disabled,
+and is enabled through environment variables. An OpenAI account hard budget cap is
+the financial backstop.
 
 | Mode            | Rate limiter | Demo Access Gate | OpenAI account cap | Where it runs     |
 |-----------------|--------------|------------------|--------------------|-------------------|
@@ -317,11 +253,15 @@ account hard budget cap is the platform-independent financial backstop.
 | Demo            | on           | off              | on                 | Public demo       |
 | Restricted demo | on           | on               | on                 | Gated public demo |
 
+**Operational hardening.** Structured metadata-only logging (JSON in deployment,
+text locally), a repository-owned LLM request timeout (`OPENAI_TIMEOUT_SECONDS`,
+default 60s) that fails safely, graceful shutdown, and a live readiness check. See
+[ADR-013](docs/adr/ADR-013-Operational_Observability_and_Resilience.md).
+
 **Build and run**
 
 ```bash
 docker build -t solstice-intelligence .          # after pinning the base-image digest
-
 docker run --rm -p 8000:8000 \
   -e OPENAI_API_KEY=sk-... \
   -e OPENAI_MODEL=gpt-4o-2024-08-06 \
@@ -330,124 +270,65 @@ docker run --rm -p 8000:8000 \
 # API + Swagger: http://127.0.0.1:8000/docs
 ```
 
-A `render.yaml` blueprint is provided; Cloud Run and Fly.io use the same image
-and environment variables.
+A `render.yaml` blueprint is provided; Cloud Run and Fly.io use the same image and
+variables.
+
+------------------------------------------------------------------------
+
+## Releases
+
+Releases are deterministic and tag-driven. `pyproject.toml` is the single version
+source; `scripts/check_version.py` verifies tag ↔ `pyproject` ↔ `/version`; the
+release workflow independently re-verifies the quality gates and warehouse
+provenance, builds and publishes the image to GHCR (via the built-in `GITHUB_TOKEN`),
+and creates the GitHub Release from `CHANGELOG.md`. See
+[Release Guide](docs/developer/Release_Guide.md).
 
 ------------------------------------------------------------------------
 
 ## Testing & Verification
 
 ### Automated
-
--   135 automated tests (deterministic, zero-cost)
--   API regression tests
--   Validation tests
--   Orchestrator tests
--   Warehouse tests
--   Deployment Access Guard tests
--   Version-metadata tests
--   Environment-diagnostic tests (`scripts/verify_env.py`)
+-   147 automated tests (deterministic, zero-cost)
+-   Engine, API contract, and adversarial validation tests
+-   Frontend client, component, and flow tests
+-   Operational tests: logging formatter, the metadata-only logging invariant,
+    timeout resolution/handling, live readiness, environment diagnostic, and the
+    version-consistency checker
+-   88% coverage (informational)
 
 ### Manual release verification
-
--   Application startup
--   Health endpoint
--   Readiness endpoint
--   Version endpoint
--   Swagger / OpenAPI
--   Successful governed analytics query
--   Invalid request handling
--   Truthful no-query behaviour
--   Reproducible Docker image build (digest-pinned base, warehouse bundled)
+-   Startup, health/readiness/version, Swagger, a successful governed query,
+    invalid-request handling, and a reproducible Docker image build.
 
 ------------------------------------------------------------------------
 
 ## Current Status
 
-### Milestone 1 (Complete & Frozen)
-
--   Warehouse integration
--   Schema grounding
--   SQL validation gate
--   Read-only execution
--   Response formatting
-
-### Milestone 2
-
-**Phase G (Complete & Frozen)**
-
--   FastAPI API
--   Versioned REST contract
--   Dependency injection
--   Request ID middleware
--   OpenAPI documentation
--   Health/readiness endpoints
--   API regression tests
-
-**Phase H (Complete & Frozen)**
-
--   Streamlit frontend
--   HTTP-only presentation layer
--   Typed API client
--   Pure rendering components
--   ADR-010
--   Frontend regression tests
--   REST-based UI
-
-### Milestone 3 — Production Engineering (In Progress)
-
-**Phase A — CI & Quality Gates** ✅ (`v1.2.1`)
-
--   GitHub Actions on every push and pull request
--   Blocking gates: Ruff (lint + format), pytest, mypy
--   Advisory: coverage, pip-audit
-
-**Phase B — Developer Experience & Repository Standards** ✅ (`v1.2.2`)
-
--   `just` task runner (developer convenience; CI runs commands directly)
--   Runtime / development dependency split, all dev tools pinned `==`
--   `scripts/verify_env.py` environment diagnostic (no network, zero API cost)
--   Developer Guide and reproducible clean-clone workflow
--   CI aligned to Python 3.14
-
-**Phase C — Deployment** ✅ (`v1.2.3`)
-
--   Reproducible Docker image (digest-pinned base, non-root, runtime-only deps)
--   Certified warehouse bundled as an immutable deployment artifact
--   Deployment Access Guard on `POST /v1/ask` (rate limiter + optional demo gate)
--   Truthful `/version`, single-sourced from `pyproject.toml`
--   Advisory container image scan in CI (build blocks; scan reports)
--   ADR-012 and Deployment Guide
-
-**Phases D–E (Planned)** — Release Engineering, Operational Hardening.
-Milestone 3 completes at `v1.3.0`.
+- **Milestone 1** — governed backend ✅ (frozen)
+- **Milestone 2** — Phase G REST API ✅, Phase H Streamlit frontend ✅ (frozen)
+- **Milestone 3 — Production Engineering ✅ (complete at `v1.3.0`)**
+  - Phase A — CI & quality gates ✅ (`v1.2.1`)
+  - Phase B — Developer experience & repository standards ✅ (`v1.2.2`)
+  - Phase C — Deployment ✅ (`v1.2.3`)
+  - Phase D — Release engineering ✅ (`v1.2.4`)
+  - Phase E — Operational hardening ✅ (`v1.3.0`)
 
 ------------------------------------------------------------------------
 
 ## Technology Stack
 
--   Python
--   FastAPI
--   DuckDB
--   OpenAI Responses API
--   sqlglot
--   Pydantic
--   Pytest
--   Docker
--   Git
+Python · FastAPI · DuckDB · OpenAI Responses API · sqlglot · Pydantic · Pytest ·
+Docker · GitHub Actions · Git
 
 ------------------------------------------------------------------------
 
 ## Roadmap
 
--   Milestone 1 — Governed backend ✅
--   Milestone 2 — Phase G: REST API ✅
--   Milestone 2 — Phase H: Streamlit frontend ✅
--   Milestone 3 — Phase A: CI & quality gates ✅
--   Milestone 3 — Phase B: Developer experience & repository standards ✅
--   Milestone 3 — Phase C: Deployment ✅
--   Milestone 3 — Phase D: Release engineering
--   Milestone 3 — Phase E: Operational hardening
+Milestone 3 is complete. Future directions (each additive, each warranting its own
+design review) include an observability platform built on the structured-logging
+foundation, conversation memory / multi-turn, authentication as a product feature,
+and caching — all deferred by design, not omissions.
 
 ------------------------------------------------------------------------
 

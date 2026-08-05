@@ -94,3 +94,27 @@ use the same image and the same environment variables.
 - `OPENAI_MODEL` pinned to a dated snapshot.
 - Warehouse checksum recorded and verified.
 - Non-root container execution.
+
+## Operational configuration (ADR-013)
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `OPENAI_TIMEOUT_SECONDS` | Repository-owned LLM request timeout (seconds). On timeout the request returns a non-success response rather than hanging. Deterministic across SDK upgrades. | `60` |
+| `LOG_LEVEL` | Level for the `solstice` logger. | `INFO` |
+| `LOG_FORMAT` | `json` for structured deployment logs, `text` for local readability. | `text` |
+
+**Logging in deployment.** Set `LOG_FORMAT=json` so logs are structured and
+queryable. Logs are metadata-only by design and by test — request IDs, lifecycle
+events, timing, status codes, and operational diagnostics — and never contain
+prompts, generated SQL, warehouse query results, model responses, user data, API
+keys, or secrets. No log aggregation backend is bundled; JSON lines can be shipped by
+the platform's own log pipeline if desired.
+
+**Readiness under load.** `GET /ready` performs a live `SELECT 1` on the read-only
+warehouse and never calls the LLM, so a platform may poll it at zero cost. `GET
+/health` is pure liveness. Configure the platform's readiness probe against `/ready`
+and its liveness probe against `/health`.
+
+**Graceful shutdown.** The service drains in-flight requests on shutdown; ensure the
+platform's stop-grace period allows in-flight governed requests (bounded by
+`OPENAI_TIMEOUT_SECONDS`) to complete.

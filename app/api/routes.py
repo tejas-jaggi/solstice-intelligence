@@ -42,17 +42,18 @@ def ask(
 ) -> AskResponse:
     """Answer a natural-language question through the governed pipeline.
 
-    Pipeline outcomes (including refusals) return 200 with a status field. The
-    Deployment Access Guard (ADR-012) protects this endpoint against unbounded
-    OpenAI spend; it is a pass-through unless enabled by environment.
+    Pipeline outcomes (including refusals and timeouts) return 200 with a status
+    field. The Deployment Access Guard (ADR-012) protects this endpoint against
+    unbounded OpenAI spend.
     """
     request_id = getattr(request.state, "request_id", "unknown")
     result = assistant.ask(body.question)
 
-    # Log system behavior only — never the question text, answer, or secrets.
+    # METADATA-ONLY (ADR-013): request id + pipeline stage. Never the question,
+    # the SQL, the rows, or the model response.
     logger.info(
         "ask handled",
-        extra={"request_id": request_id, "stage": result.stage.value},
+        extra={"request_id": request_id, "stage": result.stage.value, "event": "ask"},
     )
 
     return mapping.to_ask_response(result, request_id)
@@ -66,25 +67,27 @@ def health() -> HealthResponse:
 
 @router.get("/ready", response_model=ReadyResponse, tags=["ops"])
 def ready(request: Request, response: Response) -> ReadyResponse:
-    """Readiness: the assistant is constructed and the warehouse is reachable.
+    """Readiness: can the service serve a request right now? (ADR-013)
 
-    Never calls OpenAI — readiness must be free to poll.
+    Live but inexpensive: a trivial SELECT 1 on the existing read-only warehouse
+    connection. No metadata scan, no expensive query, and NEVER an LLM call.
     """
     assistant = getattr(request.app.state, "assistant", None)
     if assistant is None:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return ReadyResponse(ready=False, detail="Assistant not initialized.")
 
-    # Cheap warehouse reachability check (no OpenAI, no tokens spent).
-    try:
-        warehouse_ok = getattr(request.app.state, "warehouse_ok", True)
-    except Exception:  # pragma: no cover
-        warehouse_ok = False
+    probe = getattr(request.app.state, "readiness_probe", None)
+    if probe is None:
+        # No probe wired (e.g. minimal test app): fall back to the startup flag.
+        if not getattr(request.app.state, "warehouse_ok", False):
+            response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+            return ReadyResponse(ready=False, detail="Warehouse not reachable.")
+        return ReadyResponse(ready=True, detail="ok")
 
-    if not warehouse_ok:
+    if not probe():
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return ReadyResponse(ready=False, detail="Warehouse not reachable.")
-
     return ReadyResponse(ready=True, detail="ok")
 
 

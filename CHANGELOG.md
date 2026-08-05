@@ -9,31 +9,51 @@ The version in `pyproject.toml` is the single source of truth; each release tag
 
 ## [Unreleased]
 
+## [1.3.0] - Milestone 3, Phase E — Operational Hardening (Milestone 3 complete)
+### Added
+- Structured, metadata-only operational logging (`app/api/logging_config.py`):
+  JSON (deployment) / text (local) formatters emitting a fixed whitelisted field
+  set, keyed by the existing request correlation ID; configured once and
+  idempotently.
+- Metadata-only logging invariant, promoted to a formal repository invariant and
+  enforced by a deterministic end-to-end test.
+- Repository-owned LLM request timeout at the isolated client seam
+  (`app/llm/client.py`): default 60s, overridable via `OPENAI_TIMEOUT_SECONDS`;
+  typed `LLMTimeoutError` (subclass of `LLMError`) mapped to the existing
+  non-success outcome — no orchestrator or contract change.
+- Graceful shutdown draining in-flight requests, plus structured startup diagnostics.
+- Live readiness probe (`app/api/readiness.py`): `GET /ready` runs `SELECT 1` on the
+  read-only warehouse; no LLM call.
+- Operational configuration: `LOG_LEVEL`, `LOG_FORMAT`.
+- ADR-013 (Operational Observability & Resilience); Developer/Deployment guide and
+  `.env.example` updates for the new operational variables.
+
+### Changed
+- Reconciled authoritative documentation (`Architecture_State.md`,
+  `Milestone_Continuation.md`, `README.md`) to the final Milestone 3 state, including
+  the Phase D reconciliation the README had been missing.
+
+### Unchanged
+- The governed engine (validation, execution, llm orchestration, formatting,
+  warehouse, SQL generation) and the public API contract (`app/api/models.py`) are
+  untouched. Phase E is edge/seam-only: logging, timeout, shutdown, readiness.
+
 ## [1.2.4] - Milestone 3, Phase D — Release Engineering
 ### Added
 - Deterministic version-consistency checker (`scripts/check_version.py`) enforcing
-  git tag ↔ `pyproject.toml` (and transitively the `/version` endpoint), with
-  deterministic unit tests.
+  git tag ↔ `pyproject.toml` (and transitively `/version`), with unit tests.
 - Tag-driven release workflow (`.github/workflows/release.yml`) performing
   independent release verification, image build, GHCR publish, and GitHub Release
   creation; includes a `workflow_dispatch` recovery path.
 - GHCR image publishing using only the built-in `GITHUB_TOKEN` (least privilege).
 - Machine-readable warehouse checksum sidecar (`data/solstice_apparel.duckdb.sha256`)
-  validated at release time.
-- `CHANGELOG.md` and `docs/developer/Release_Guide.md`.
-- `just check-version` recipe.
+  validated at release.
+- `CHANGELOG.md` and `docs/developer/Release_Guide.md`; `just check-version` recipe.
 
 ### Changed
-- Modernized CI actions (`actions/checkout` v5, `actions/setup-python` v6) to clear
-  the deprecated-Node-20 warning.
-- Reconciled authoritative documentation (`Architecture_State.md`,
-  `Milestone_Continuation.md`) to the current repository state; repaired markdown
-  rendering in `Phase_B_Completion.md`.
-
-### Unchanged
-- The governed engine (validation, execution, llm, formatting, warehouse, SQL
-  generation) is untouched. Phase D is additive: release engineering, workflow
-  automation, and documentation only.
+- Modernized CI actions (`actions/checkout` v5, `actions/setup-python` v6).
+- Reconciled `Architecture_State.md` and `Milestone_Continuation.md`; repaired
+  markdown rendering in `Phase_B_Completion.md`.
 
 ## [1.2.3] - Milestone 3, Phase C — Deployment
 ### Added

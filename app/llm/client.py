@@ -12,9 +12,11 @@ declined / answered in prose). The client does not validate, execute, or format.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Protocol, cast
 
+from openai import APITimeoutError
 from openai.types.responses import FunctionToolParam
 
 
@@ -24,6 +26,30 @@ class LLMError(RuntimeError):
     The orchestrator catches this and turns it into a typed API_ERROR outcome;
     it never propagates as a raw provider exception.
     """
+
+
+class LLMTimeoutError(LLMError):
+    """Raised when the provider call exceeds the repository-owned request timeout.
+
+    A subclass of LLMError, so the orchestrator's existing provider-failure
+    handling maps it to the same API_ERROR outcome with no orchestrator or
+    contract change. The distinct type allows timeout-specific handling in future.
+    """
+
+
+# Repository-owned default (ADR-013): keeps timeout behavior deterministic even
+# if the SDK changes its own default in a future release. OPENAI_TIMEOUT_SECONDS
+# overrides it.
+DEFAULT_TIMEOUT_SECONDS = 60.0
+
+
+def _resolve_timeout() -> float:
+    raw = os.environ.get("OPENAI_TIMEOUT_SECONDS", "").strip()
+    try:
+        value = float(raw) if raw else DEFAULT_TIMEOUT_SECONDS
+    except ValueError:
+        value = DEFAULT_TIMEOUT_SECONDS
+    return value if value > 0 else DEFAULT_TIMEOUT_SECONDS
 
 
 @dataclass(frozen=True)
@@ -105,7 +131,9 @@ class OpenAIClient:
             raise LLMError(
                 "openai package is not installed; install it or use a different client."
             ) from exc
-        self._client = OpenAI()  # reads OPENAI_API_KEY from environment
+        # Repository-owned request timeout (ADR-013), enforced by the SDK client.
+        self._timeout = _resolve_timeout()
+        self._client = OpenAI(timeout=self._timeout)  # reads OPENAI_API_KEY from environment
         self.model_name = model_name
         self._tool_schema = tool_schema
 
@@ -120,6 +148,8 @@ class OpenAIClient:
                 # cast to the SDK's tool-param type belongs here, not in tools.py.
                 tools=[cast(FunctionToolParam, self._tool_schema)],
             )
+        except APITimeoutError as exc:  # pragma: no cover - network/provider dependent
+            raise LLMTimeoutError(f"OpenAI request timed out after {self._timeout:g}s") from exc
         except Exception as exc:  # pragma: no cover - network/provider dependent
             raise LLMError(f"OpenAI request failed: {exc}") from exc
 
